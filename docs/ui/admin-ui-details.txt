@@ -1,0 +1,33 @@
+Admin UI Design Details for Auction Website
+
+1. Admin Dashboard
+- Overview of platform activity (active auctions, users, revenue)
+- Quick links to manage users, auctions, and reports
+
+2. User Management
+- List of all users with search and filter options
+- View, edit, or deactivate user accounts
+- Assign or change user roles (buyer, seller, admin)
+
+3. Auction Management
+- List of all auctions (active, upcoming, closed)
+- Create, edit, or delete auction listings
+- Approve or reject new auction submissions
+- View auction details and bid history
+
+4. Reports & Analytics
+- Generate and view reports on auction performance, revenue, and user activity
+- Export data (CSV, PDF)
+
+5. Notifications
+- Send announcements or notifications to users
+- View system alerts and logs
+
+6. Security & Settings
+- Manage admin accounts and permissions
+- Configure platform settings (payment, notifications, etc.)
+
+7. Help & Support
+- Access to support tickets and user inquiries
+
+Admin UI should prioritize efficiency, clarity, and security, with access controls for sensitive actions.

@@ -1,0 +1,52 @@
+UI Design Components for Auction Website
+
+1. Header & Navigation Bar
+- Logo
+- Navigation links (Home, Auctions, My Account, Admin, etc.)
+- Login/Logout button
+
+2. Homepage
+- Featured auctions carousel or grid
+- Search bar for auctions/items
+- Quick links to categories
+
+3. Auction Listing Page
+- List/grid of auction items
+- Filters (category, price, ending soon, etc.)
+- Pagination controls
+
+4. Auction Details Page
+- Item images and gallery
+- Item description and details
+- Current bid, bid history, countdown timer
+- Bid input and submit button
+- Seller information
+
+5. User Authentication
+- Login form
+- Registration form
+- Password reset
+
+6. User Dashboard
+- My auctions (selling and bidding)
+- Profile management
+- Notifications and messages
+
+7. Admin Panel
+- Manage users
+- Manage auctions
+- View reports and analytics
+
+8. Footer
+- Contact info
+- Social media links
+- Terms and privacy links
+
+9. Responsive Design
+- Mobile navigation drawer
+- Adaptive layouts for different screen sizes
+
+10. Notifications
+- Toasts or modals for bid updates, errors, and confirmations
+
+Each component should be modular and reusable, following React best practices and styled for a modern, user-friendly experience.

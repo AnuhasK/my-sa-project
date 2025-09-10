@@ -1,0 +1,18 @@
+Figma Prompt: User Interface (User Side)
+
+Design a web-based auction platform user interface in Figma with the following requirements:
+- Color palette: strictly black, white, and shades of gray (no other colors)
+- Style: simple, solid colors, elegant, and modern (ample white space, clean lines, sans-serif fonts)
+- Components to include:
+  1. Header with logo (left), navigation links (center), and login/logout button (right)
+  2. Homepage with a featured auctions section (carousel or grid), search bar, and quick links to categories
+  3. Auction listing page: grid/list of items with filters (category, price, ending soon), and pagination
+  4. Auction details page: large item image, description, seller info, current bid, bid history, countdown timer, and bid input
+  5. User authentication forms: login, registration, password reset (centered, minimal, with clear labels)
+  6. User dashboard: tabs or sidebar for “My Auctions”, “Bids”, “Profile”, and “Notifications”
+  7. Notification toasts/modals for bid updates and errors
+  8. Footer with contact info, social links, and legal links
+  9. Responsive layouts for desktop and mobile
+- Use only black, white, and gray for all elements, backgrounds, and text
+- All buttons and inputs should have clear, high-contrast states (hover, active, disabled)
+- Use modular, reusable components for cards, forms, and navigation

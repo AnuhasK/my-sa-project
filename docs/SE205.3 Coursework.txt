@@ -1,0 +1,44 @@
+Coursework
+This coursework for SE205.3 is worth a maximum of 30% of the module marks and contains two parts: a prototype and a report. The prototype is basically a working software and the report should contain screenshots, testing results, discussion, and most importantly individual contributions.
+
+1. Scenario
+
+You have been commissioned to develop an online auction management system for a leading auction house. The system aims to facilitate the buying and selling of valuable items through an intuitive web-based platform. It includes features for managing auctions, bidding processes, user accounts, and secure transactions.
+
+Components and Features:
+1. Client Application (Auction Management System):
+o User Interface:Design an attractive and user-friendly interface for buyers and sellers to browse auctions, place bids, and manage their accounts.
+o Auction Listings:Implement a robust system for creating, scheduling, and managing auction listings with detailed item descriptions, images, and starting bids.
+o Bidding System:Develop a real-time bidding system with automatic bid increments, bid notifications, and countdown timers for auction deadlines.
+o User Profiles and Authentication:Implement user registration, authentication, and profile management functionalities for buyers, sellers, and administrators.
+o Payment Integration:Integrate secure payment gateways (e.g., PayPal, Stripe) for handling financial transactions and auction fees.
+2. Backend Services (C# ASP.NET Web API):
+o Database Management:Design and implement a relational database (e.g., SQL Server) to store auction listings, user profiles, bid history, and transaction records.
+o APIs for Auction Management:Develop RESTful APIs for creating, updating, and closing auctions, managing bids, and retrieving auction data for display.
+o Security and Access Control:Implement role-based access control (RBAC), encryption for sensitive data (e.g., payment information), and HTTPS for secure communication.
+o Reporting and Analytics:Implement APIs for generating reports on auction performance, bidder activity, and revenue trends to aid decision-making.
+3. Integration with External Services:
+o Email Notifications:Integrate with email services for sending out notifications to bidders on auction status updates, bid confirmations, and payment reminders.
+o Social Media Integration:Implement sharing features and social media integration to promote auctions and attract potential bidders.
+o Responsive Design:Ensure the frontend application is responsive and accessible across various devices, providing a seamless user experience.
+
+Tasks for Development:
+* Task 1: Client Application Development
+o Design and develop frontend components using HTML5, CSS3, and JavaScript frameworks (e.g., Angular, React) for dynamic and responsive user interfaces.
+o Implement client-side validation, error handling, and feedback mechanisms to enhance usability during auction processes.
+o Conduct usability testing and gather feedback from users to refine interface design and functionality.
+* Task 2: Backend API Development
+o Design and implement RESTful APIs using C# ASP.NET Web API for managing auction listings, bids, user authentication, and payment processing.
+o Ensure APIs are well-documented with clear specifications for integration with frontend components and external services.
+o Implement robust error handling, logging, and monitoring to maintain system reliability and performance.
+* Task 3: Integration and Testing
+o Integrate frontend client application with backend APIs to ensure seamless data flow and functionality across the auction management system.
+o Conduct comprehensive testing, including unit tests for API endpoints, integration tests for system components, and user acceptance testing (UAT) for end-to-end scenarios.
+
+2. Deliverables
+I. Prototype
+The prototype should be a working solution with both server (service) and a client that consumes the service. The service needs to be tested using third-party tools such as Postman.1
+
+II. Report
+The report should contain three architectural diagrams (class diagram is mandatory), a discussion on the design patterns used, all architectural decisions taken including the assumptions, and all working interfaces of the development. The front page should contain group member names, roles, indices, subject titles, and codes.
+Each member must explain his/her contribution; one can use illustrations for explanations, and then paragraphs need to be extended. The report should contain standard references, figures, tables, and/or equations.

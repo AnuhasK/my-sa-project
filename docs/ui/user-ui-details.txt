@@ -1,0 +1,42 @@
+User UI Design Details for Auction Website
+
+1. Homepage
+- Welcome message and featured auctions
+- Search bar and category filters
+- Quick access to ongoing and upcoming auctions
+
+2. Auction Listings
+- List/grid of available auctions
+- Filters: category, price, ending soon, etc.
+- Pagination controls
+
+3. Auction Details Page
+- Item images and gallery
+- Item description, seller info, and auction rules
+- Current bid, bid history, countdown timer
+- Bid input and submit button
+- Watchlist/add to favorites
+
+4. User Authentication
+- Login and registration forms
+- Password reset and account recovery
+
+5. User Dashboard
+- My auctions (items user is selling and bidding on)
+- Bid status and history
+- Profile management (edit info, change password)
+- Notifications (bid updates, auction results)
+- Payment history and pending payments
+
+6. Notifications
+- Real-time bid updates (toasts/modals)
+- Email notification preferences
+
+7. Responsive Design
+- Mobile-friendly navigation and layouts
+
+8. Help & Support
+- FAQ section
+- Contact support form
+
+All components should be intuitive, visually appealing, and provide clear feedback to the user.

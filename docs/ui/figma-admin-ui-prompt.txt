@@ -1,0 +1,18 @@
+Figma Prompt: Admin Interface
+
+Design a web-based admin dashboard for the auction platform in Figma with these requirements:
+- Color palette: strictly black, white, and shades of gray (no other colors)
+- Style: simple, solid colors, elegant, and modern (ample white space, clean lines, sans-serif fonts)
+- Components to include:
+  1. Sidebar navigation with icons and labels for Dashboard, Users, Auctions, Reports, Notifications, Settings
+  2. Dashboard overview: summary cards for active auctions, users, revenue, and quick links
+  3. User management page: table of users with search/filter, actions (view, edit, deactivate)
+  4. Auction management page: table of auctions (active, upcoming, closed), actions (edit, approve, delete)
+  5. Reports & analytics: charts and tables in black/white, export buttons
+  6. Notification center: list of system alerts and ability to send announcements
+  7. Settings page: forms for platform configuration
+  8. Help & support section: list of support tickets/inquiries
+  9. Responsive layouts for desktop and mobile
+- Use only black, white, and gray for all elements, backgrounds, and text
+- All tables, cards, and forms should be clean, with clear separation and high-contrast text
+- Use modular, reusable components for tables, cards, forms, and navigation

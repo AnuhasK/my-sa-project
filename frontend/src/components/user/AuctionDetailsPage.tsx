@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { ArrowLeft, Heart, Share2, Eye, User, MapPin, Clock, Gavel, Shield, TrendingUp } from 'lucide-react';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Badge } from './ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Badge } from '../ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { CountdownTimer } from './CountdownTimer';
-import { ImageWithFallback } from './figma/ImageWithFallback';
 
 interface AuctionDetailsPageProps {
   auctionId: string;
@@ -101,7 +100,7 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage }: AuctionDetails
             <div className="space-y-4">
               {/* Main Image */}
               <div className="relative">
-                <ImageWithFallback
+                <img
                   src={auction.images[selectedImage]}
                   alt={auction.title}
                   className="w-full h-96 md:h-[500px] object-cover rounded-lg border border-gray-200"

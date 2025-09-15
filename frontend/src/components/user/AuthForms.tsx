@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
-import { Checkbox } from './ui/checkbox';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
+import { Checkbox } from '../ui/checkbox';
 
 interface AuthFormsProps {
   mode: 'login' | 'register' | 'reset-password';
@@ -184,7 +184,7 @@ export function AuthForms({ mode, setCurrentPage, setIsLoggedIn }: AuthFormsProp
                   <Checkbox
                     id="acceptTerms"
                     checked={formData.acceptTerms}
-                    onCheckedChange={(checked) => handleInputChange('acceptTerms', checked as boolean)}
+                    onCheckedChange={(checked: boolean) => handleInputChange('acceptTerms', checked)}
                   />
                   <label htmlFor="acceptTerms" className="text-sm text-gray-600">
                     I agree to the{' '}

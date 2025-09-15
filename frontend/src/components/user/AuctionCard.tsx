@@ -1,7 +1,6 @@
 import { Clock, Eye } from 'lucide-react';
-import { ImageWithFallback } from './figma/ImageWithFallback';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
 
 interface AuctionCardProps {
   id: string;
@@ -31,7 +30,7 @@ export function AuctionCard({
       onClick={onClick}
     >
       <div className="relative">
-        <ImageWithFallback
+        <img
           src={imageUrl}
           alt={title}
           className="w-full h-48 object-cover"
@@ -74,7 +73,7 @@ export function AuctionCard({
         <Button 
           className="w-full mt-3 bg-black text-white hover:bg-gray-800"
           size="sm"
-          onClick={(e) => {
+          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
             e.stopPropagation();
             onClick?.();
           }}

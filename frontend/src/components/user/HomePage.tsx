@@ -1,6 +1,6 @@
 import { Search, Gavel, Shield, Clock, TrendingUp, ArrowRight } from 'lucide-react';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
 import { AuctionCard } from './AuctionCard';
 
 interface HomePageProps {
@@ -15,7 +15,7 @@ export function HomePage({ setCurrentPage, setSelectedAuction }: HomePageProps) 
       title: 'Vintage Omega Speedmaster Professional',
       currentBid: 2850,
       timeLeft: '2d 14h 32m',
-      imageUrl: 'https://images.unsplash.com/photo-1695528589305-5103f5c52306?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aW50YWdlJTIwd2F0Y2glMjBsdXh1cnklMjBhdWN0aW9ufGVufDF8fHx8MTc1NzUwMDE3Nnww&ixlib=rb-4.1.0&q=80&w=1080',
+      imageUrl: 'img/products/watch.jpg',
       views: 342,
       category: 'Watches',
       isEnding: false
@@ -25,7 +25,7 @@ export function HomePage({ setCurrentPage, setSelectedAuction }: HomePageProps) 
       title: 'Mid-Century Modern Lounge Chair',
       currentBid: 1250,
       timeLeft: '5h 42m',
-      imageUrl: 'https://images.unsplash.com/photo-1682248241811-c60fac657a2e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhbnRpcXVlJTIwZnVybml0dXJlJTIwY2hhaXJ8ZW58MXx8fHwxNzU3Mzk3NzEwfDA&ixlib=rb-4.1.0&q=80&w=1080',
+      imageUrl: 'img/products/chair.jpg',
       views: 189,
       category: 'Furniture',
       isEnding: true
@@ -35,7 +35,7 @@ export function HomePage({ setCurrentPage, setSelectedAuction }: HomePageProps) 
       title: 'Leica M3 35mm Film Camera',
       currentBid: 890,
       timeLeft: '1d 8h 15m',
-      imageUrl: 'https://images.unsplash.com/photo-1626256226202-7989ae22548e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aW50YWdlJTIwY2FtZXJhJTIwcGhvdG9ncmFwaHl8ZW58MXx8fHwxNzU3NTAwMTgyfDA&ixlib=rb-4.1.0&q=80&w=1080',
+      imageUrl: 'img/products/camera.jpg',
       views: 256,
       category: 'Electronics',
       isEnding: false
@@ -45,7 +45,7 @@ export function HomePage({ setCurrentPage, setSelectedAuction }: HomePageProps) 
       title: 'Original Oil Painting - Abstract Landscape',
       currentBid: 1680,
       timeLeft: '3d 2h 8m',
-      imageUrl: 'https://images.unsplash.com/photo-1552832036-5ce6f9568f9f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhcnQlMjBwYWludGluZyUyMGZyYW1lfGVufDF8fHx8MTc1NzUwMDE4NHww&ixlib=rb-4.1.0&q=80&w=1080',
+      imageUrl: 'img/products/painting.jpg',
       views: 423,
       category: 'Art',
       isEnding: false

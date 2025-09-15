@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Search, Filter, Grid, List, SlidersHorizontal } from 'lucide-react';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
-import { Checkbox } from './ui/checkbox';
-import { Slider } from './ui/slider';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../ui/sheet';
+import { Checkbox } from '../ui/checkbox';
+import { Slider } from '../ui/slider';
 import { AuctionCard } from './AuctionCard';
 
 interface AuctionListingPageProps {
@@ -108,7 +108,7 @@ export function AuctionListingPage({ setCurrentPage, setSelectedAuction }: Aucti
               <Checkbox
                 id={category}
                 checked={selectedCategories.includes(category)}
-                onCheckedChange={(checked) => handleCategoryChange(category, checked as boolean)}
+                onCheckedChange={(checked: boolean) => handleCategoryChange(category, checked)}
               />
               <label htmlFor={category} className="text-sm text-gray-700 cursor-pointer">
                 {category}
@@ -302,7 +302,7 @@ export function AuctionListingPage({ setCurrentPage, setSelectedAuction }: Aucti
                       </div>
                       <Button 
                         className="bg-black text-white hover:bg-gray-800"
-                        onClick={(e) => {
+                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                           e.stopPropagation();
                           handleAuctionClick(auction.id);
                         }}

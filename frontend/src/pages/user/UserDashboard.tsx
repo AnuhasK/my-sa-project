@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { User, Heart, Gavel, Bell, Settings, Eye, Clock, DollarSign, Trophy, ArrowRight } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Badge } from '../ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Button } from '../../components/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/tabs';
+import { Badge } from '../../components/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '../../components/avatar';
 import { AuctionCard } from './AuctionCard';
 
 interface UserDashboardProps {
@@ -60,7 +60,7 @@ export function UserDashboard({ setCurrentPage, setSelectedAuction }: UserDashbo
       currentBid: 2850,
       status: 'outbid',
       timeLeft: '2d 14h 32m',
-      imageUrl: 'https://images.unsplash.com/photo-1695528589305-5103f5c52306?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aW50YWdlJTIwd2F0Y2glMjBsdXh1cnklMjBhdWN0aW9ufGVufDF8fHx8MTc1NzUwMDE3Nnww&ixlib=rb-4.1.0&q=80&w=1080'
+      imageUrl: 'img/products/watch.jpg'
     },
     {
       id: '3',
@@ -69,7 +69,7 @@ export function UserDashboard({ setCurrentPage, setSelectedAuction }: UserDashbo
       currentBid: 890,
       status: 'winning',
       timeLeft: '1d 8h 15m',
-      imageUrl: 'https://images.unsplash.com/photo-1626256226202-7989ae22548e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aW50YWdlJTIwY2FtZXJhJTIwcGhvdG9ncmFwaHl8ZW58MXx8fHwxNzU3NTAwMTgyfDA&ixlib=rb-4.1.0&q=80&w=1080'
+      imageUrl: 'img/products/camera.jpg'
     }
   ];
 
@@ -79,7 +79,7 @@ export function UserDashboard({ setCurrentPage, setSelectedAuction }: UserDashbo
       title: 'Art Deco Table Lamp',
       finalBid: 425,
       wonDate: '3 days ago',
-      imageUrl: 'https://images.unsplash.com/photo-1552832036-5ce6f9568f9f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhcnQlMjBwYWludGluZyUyMGZyYW1lfGVufDF8fHx8MTc1NzUwMDE4NHww&ixlib=rb-4.1.0&q=80&w=1080',
+      imageUrl: 'img/products/lamp.jpg',
       status: 'delivered'
     },
     {
@@ -87,7 +87,7 @@ export function UserDashboard({ setCurrentPage, setSelectedAuction }: UserDashbo
       title: 'Vintage Polaroid Camera',
       finalBid: 180,
       wonDate: '1 week ago',
-      imageUrl: 'https://images.unsplash.com/photo-1626256226202-7989ae22548e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aW50YWdlJTIwY2FtZXJhJTIwcGhvdG9ncmFwaHl8ZW58MXx8fHwxNzU3NTAwMTgyfDA&ixlib=rb-4.1.0&q=80&w=1080',
+      imageUrl: 'img/products/camera.jpg',
       status: 'shipped'
     }
   ];

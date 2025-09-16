@@ -1,6 +1,6 @@
 import { Clock, Eye } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
+import { Button } from '../../components/button';
+import { Badge } from '../../components/badge';
 
 interface AuctionCardProps {
   id: string;

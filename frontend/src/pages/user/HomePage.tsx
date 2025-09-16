@@ -1,6 +1,6 @@
 import { Search, Gavel, Shield, Clock, TrendingUp, ArrowRight } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
+import { Button } from '../../components/button';
+import { Input } from '../../components/input';
 import { AuctionCard } from './AuctionCard';
 
 interface HomePageProps {

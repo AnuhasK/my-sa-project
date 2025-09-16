@@ -12,15 +12,15 @@ import {
   Megaphone,
   Mail
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Textarea } from '../ui/textarea';
-import { Badge } from '../ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Checkbox } from '../ui/checkbox';
-import { Label } from '../ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/card';
+import { Button } from '../../components/button';
+import { Input } from '../../components/input';
+import { Textarea } from '../../components/textarea';
+import { Badge } from '../../components/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/tabs';
+import { Checkbox } from '../../components/checkbox';
+import { Label } from '../../components/label';
 
 export function NotificationCenter() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -219,11 +219,11 @@ export function NotificationCenter() {
                     <Input
                       placeholder="Search notifications..."
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                       className="pl-10 w-64"
                     />
                   </div>
-                  <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <Select value={typeFilter} onValueChange={(value: string) => setTypeFilter(value)}>
                     <SelectTrigger className="w-40">
                       <SelectValue placeholder="Filter by type" />
                     </SelectTrigger>
@@ -307,7 +307,7 @@ export function NotificationCenter() {
                   <Input
                     id="title"
                     value={newAnnouncement.title}
-                    onChange={(e) => setNewAnnouncement(prev => ({ ...prev, title: e.target.value }))}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewAnnouncement(prev => ({ ...prev, title: e.target.value }))}
                     placeholder="Enter announcement title..."
                   />
                 </div>
@@ -315,7 +315,7 @@ export function NotificationCenter() {
                   <Label htmlFor="type">Type</Label>
                   <Select 
                     value={newAnnouncement.type} 
-                    onValueChange={(value) => setNewAnnouncement(prev => ({ ...prev, type: value }))}
+                    onValueChange={(value: string) => setNewAnnouncement(prev => ({ ...prev, type: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select type" />
@@ -334,7 +334,7 @@ export function NotificationCenter() {
                 <Textarea
                   id="message"
                   value={newAnnouncement.message}
-                  onChange={(e) => setNewAnnouncement(prev => ({ ...prev, message: e.target.value }))}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNewAnnouncement(prev => ({ ...prev, message: e.target.value }))}
                   placeholder="Enter your announcement message..."
                   rows={4}
                 />
@@ -347,7 +347,7 @@ export function NotificationCenter() {
                     <Checkbox 
                       id="all-users" 
                       checked={newAnnouncement.recipients === 'all'}
-                      onCheckedChange={(checked) => 
+                      onCheckedChange={(checked: boolean) => 
                         checked && setNewAnnouncement(prev => ({ ...prev, recipients: 'all' }))
                       }
                     />
@@ -357,7 +357,7 @@ export function NotificationCenter() {
                     <Checkbox 
                       id="sellers" 
                       checked={newAnnouncement.recipients === 'sellers'}
-                      onCheckedChange={(checked) => 
+                      onCheckedChange={(checked: boolean) => 
                         checked && setNewAnnouncement(prev => ({ ...prev, recipients: 'sellers' }))
                       }
                     />
@@ -367,7 +367,7 @@ export function NotificationCenter() {
                     <Checkbox 
                       id="buyers" 
                       checked={newAnnouncement.recipients === 'buyers'}
-                      onCheckedChange={(checked) => 
+                      onCheckedChange={(checked: boolean) => 
                         checked && setNewAnnouncement(prev => ({ ...prev, recipients: 'buyers' }))
                       }
                     />

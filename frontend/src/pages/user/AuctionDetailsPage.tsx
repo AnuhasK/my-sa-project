@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { ArrowLeft, Heart, Share2, Eye, User, MapPin, Clock, Gavel, Shield, TrendingUp } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Badge } from '../ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Button } from '../../components/button';
+import { Input } from '../../components/input';
+import { Badge } from '../../components/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/tabs';
+import { Avatar, AvatarFallback, AvatarImage } from '../../components/avatar';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/card';
 import { CountdownTimer } from './CountdownTimer';
 
 interface AuctionDetailsPageProps {

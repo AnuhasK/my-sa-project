@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
-import { Checkbox } from '../ui/checkbox';
+import { Button } from '../../components/button';
+import { Input } from '../../components/input';
+import { Label } from '../../components/label';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/card';
+import { Checkbox } from '../../components/checkbox';
 
 interface AuthFormsProps {
   mode: 'login' | 'register' | 'reset-password';

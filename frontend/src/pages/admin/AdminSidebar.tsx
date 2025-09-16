@@ -10,7 +10,7 @@ import {
   X,
   LogOut
 } from 'lucide-react';
-import { Button } from '../ui/button';
+import { Button } from '../../components/button';
 import { useState } from 'react';
 
 interface AdminSidebarProps {

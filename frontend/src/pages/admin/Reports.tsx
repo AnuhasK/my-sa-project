@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Download, TrendingUp, Users, DollarSign, Gavel, Calendar, ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/card';
+import { Button } from '../../components/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/table';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 
 export function Reports() {

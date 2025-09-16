@@ -1,21 +1,21 @@
 import { useState } from 'react';
-import { Header } from './components/user/Header';
-import { Footer } from './components/user/Footer';
-import { HomePage } from './components/user/HomePage';
-import { AuctionListingPage } from './components/user/AuctionListingPage';
-import { AuctionDetailsPage } from './components/user/AuctionDetailsPage';
-import { AuthForms } from './components/user/AuthForms';
-import { UserDashboard } from './components/user/UserDashboard';
-import { AdminSidebar } from './components/admin/AdminSidebar';
-import { AdminDashboard } from './components/admin/AdminDashboard';
-import { UserManagement } from './components/admin/UserManagement';
-import { AuctionManagement } from './components/admin/AuctionManagement';
-import { Reports } from './components/admin/Reports';
-import { NotificationCenter } from './components/admin/NotificationCenter';
-import { AdminSettings } from './components/admin/AdminSettings';
-import { SupportTickets } from './components/admin/SupportTickets';
-import { Button } from './components/ui/button';
-import { Toaster } from './components/ui/sonner';
+import { Header } from './pages/user/Header';
+import { Footer } from './pages/user/Footer';
+import { HomePage } from './pages/user/HomePage';
+import { AuctionListingPage } from './pages/user/AuctionListingPage';
+import { AuctionDetailsPage } from './pages/user/AuctionDetailsPage';
+import { AuthForms } from './pages/user/AuthForms';
+import { UserDashboard } from './pages/user/UserDashboard';
+import { AdminSidebar } from './pages/admin/AdminSidebar';
+import { AdminDashboard } from './pages/admin/AdminDashboard';
+import { UserManagement } from './pages/admin/UserManagement';
+import { AuctionManagement } from './pages/admin/AuctionManagement';
+import { Reports } from './pages/admin/Reports';
+import { NotificationCenter } from './pages/admin/NotificationCenter';
+import { AdminSettings } from './pages/admin/AdminSettings';
+import { SupportTickets } from './pages/admin/SupportTickets';
+import { Button } from './components/button';
+import { Toaster } from './components/sonner';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('home');

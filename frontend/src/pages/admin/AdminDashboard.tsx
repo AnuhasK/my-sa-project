@@ -11,9 +11,9 @@ import {
   ArrowDownRight,
   HelpCircle
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/card';
+import { Button } from '../../components/button';
+import { Badge } from '../../components/badge';
 
 interface AdminDashboardProps {
   setCurrentPage: (page: string) => void;

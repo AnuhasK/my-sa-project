@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Search, Filter, Grid, List, SlidersHorizontal } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../ui/sheet';
-import { Checkbox } from '../ui/checkbox';
-import { Slider } from '../ui/slider';
+import { Button } from '../../components/button';
+import { Input } from '../../components/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/select';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../../components/sheet';
+import { Checkbox } from '../../components/checkbox';
+import { Slider } from '../../components/slider';
 import { AuctionCard } from './AuctionCard';
 
 interface AuctionListingPageProps {

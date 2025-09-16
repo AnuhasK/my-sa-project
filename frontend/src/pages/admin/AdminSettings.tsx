@@ -1,17 +1,53 @@
 import { useState } from 'react';
-import { Save, Upload, Shield, DollarSign, Clock, Mail, Globe, Users } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Textarea } from '../ui/textarea';
-import { Switch } from '../ui/switch';
-import { Label } from '../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Separator } from '../ui/separator';
+import { Save, Upload, Shield, DollarSign, Clock, Mail, Globe } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/card';
+import { Button } from '../../components/button';
+import { Input } from '../../components/input';
+import { Textarea } from '../../components/textarea';
+import { Switch } from '../../components/switch';
+import { Label } from '../../components/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/tabs';
+import { Separator } from '../../components/separator';
+
+type Settings = {
+  platformName: string;
+  platformDescription: string;
+  contactEmail: string;
+  supportPhone: string;
+  timezone: string;
+  maintenanceMode: boolean;
+  minBidIncrement: number;
+  maxAuctionDuration: number;
+  defaultAuctionDuration: number;
+  bidExtensionTime: number;
+  sellerCommission: number;
+  buyersPremium: number;
+  requireEmailVerification: boolean;
+  requirePhoneVerification: boolean;
+  enableTwoFactor: boolean;
+  passwordMinLength: number;
+  maxLoginAttempts: number;
+  sessionTimeout: number;
+  smtpServer: string;
+  smtpPort: number;
+  smtpUsername: string;
+  emailNotifications: boolean;
+  bidNotifications: boolean;
+  outbidNotifications: boolean;
+  auctionEndNotifications: boolean;
+  paymentGateway: string;
+  acceptedPayments: string[];
+  paymentHoldDuration: number;
+  instantPayoutThreshold: number;
+  maxImageSize: number;
+  allowedImageFormats: string[];
+  moderationRequired: boolean;
+  autoApproveThreshold: number;
+};
 
 export function AdminSettings() {
-  const [settings, setSettings] = useState({
+  const [settings, setSettings] = useState<Settings>({
     // Platform Settings
     platformName: 'AuctionHouse',
     platformDescription: 'Your trusted partner for premium auctions',
@@ -58,7 +94,7 @@ export function AdminSettings() {
     autoApproveThreshold: 100
   });
 
-  const handleSettingChange = (key: string, value: any) => {
+  const handleSettingChange = (key: keyof Settings, value: Settings[keyof Settings]) => {
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 
@@ -113,7 +149,7 @@ export function AdminSettings() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="timezone">Timezone</Label>
-                  <Select value={settings.timezone} onValueChange={(value) => handleSettingChange('timezone', value)}>
+                  <Select value={settings.timezone} onValueChange={(value: string) => handleSettingChange('timezone', value)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -166,7 +202,7 @@ export function AdminSettings() {
                 </div>
                 <Switch
                   checked={settings.maintenanceMode}
-                  onCheckedChange={(checked) => handleSettingChange('maintenanceMode', checked)}
+                  onCheckedChange={(checked: boolean) => handleSettingChange('maintenanceMode', checked)}
                 />
               </div>
             </CardContent>
@@ -271,7 +307,7 @@ export function AdminSettings() {
                   </div>
                   <Switch
                     checked={settings.requireEmailVerification}
-                    onCheckedChange={(checked) => handleSettingChange('requireEmailVerification', checked)}
+                    onCheckedChange={(checked: boolean) => handleSettingChange('requireEmailVerification', checked)}
                   />
                 </div>
                 
@@ -282,7 +318,7 @@ export function AdminSettings() {
                   </div>
                   <Switch
                     checked={settings.requirePhoneVerification}
-                    onCheckedChange={(checked) => handleSettingChange('requirePhoneVerification', checked)}
+                    onCheckedChange={(checked: boolean) => handleSettingChange('requirePhoneVerification', checked)}
                   />
                 </div>
                 
@@ -293,7 +329,7 @@ export function AdminSettings() {
                   </div>
                   <Switch
                     checked={settings.enableTwoFactor}
-                    onCheckedChange={(checked) => handleSettingChange('enableTwoFactor', checked)}
+                    onCheckedChange={(checked: boolean) => handleSettingChange('enableTwoFactor', checked)}
                   />
                 </div>
               </div>
@@ -345,7 +381,7 @@ export function AdminSettings() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="paymentGateway">Payment Gateway</Label>
-                <Select value={settings.paymentGateway} onValueChange={(value) => handleSettingChange('paymentGateway', value)}>
+                <Select value={settings.paymentGateway} onValueChange={(value: string) => handleSettingChange('paymentGateway', value)}>
                   <SelectTrigger className="w-full md:w-48">
                     <SelectValue />
                   </SelectTrigger>
@@ -365,7 +401,7 @@ export function AdminSettings() {
                       type="checkbox"
                       id="credit_card"
                       checked={settings.acceptedPayments.includes('credit_card')}
-                      onChange={(e) => {
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                         const methods = settings.acceptedPayments;
                         if (e.target.checked) {
                           handleSettingChange('acceptedPayments', [...methods, 'credit_card']);
@@ -381,7 +417,7 @@ export function AdminSettings() {
                       type="checkbox"
                       id="paypal"
                       checked={settings.acceptedPayments.includes('paypal')}
-                      onChange={(e) => {
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                         const methods = settings.acceptedPayments;
                         if (e.target.checked) {
                           handleSettingChange('acceptedPayments', [...methods, 'paypal']);
@@ -397,7 +433,7 @@ export function AdminSettings() {
                       type="checkbox"
                       id="bank_transfer"
                       checked={settings.acceptedPayments.includes('bank_transfer')}
-                      onChange={(e) => {
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                         const methods = settings.acceptedPayments;
                         if (e.target.checked) {
                           handleSettingChange('acceptedPayments', [...methods, 'bank_transfer']);
@@ -488,7 +524,7 @@ export function AdminSettings() {
                   </div>
                   <Switch
                     checked={settings.emailNotifications}
-                    onCheckedChange={(checked) => handleSettingChange('emailNotifications', checked)}
+                    onCheckedChange={(checked: boolean) => handleSettingChange('emailNotifications', checked)}
                   />
                 </div>
                 
@@ -499,7 +535,7 @@ export function AdminSettings() {
                   </div>
                   <Switch
                     checked={settings.bidNotifications}
-                    onCheckedChange={(checked) => handleSettingChange('bidNotifications', checked)}
+                    onCheckedChange={(checked: boolean) => handleSettingChange('bidNotifications', checked)}
                   />
                 </div>
                 
@@ -510,7 +546,7 @@ export function AdminSettings() {
                   </div>
                   <Switch
                     checked={settings.outbidNotifications}
-                    onCheckedChange={(checked) => handleSettingChange('outbidNotifications', checked)}
+                    onCheckedChange={(checked: boolean) => handleSettingChange('outbidNotifications', checked)}
                   />
                 </div>
                 
@@ -521,7 +557,7 @@ export function AdminSettings() {
                   </div>
                   <Switch
                     checked={settings.auctionEndNotifications}
-                    onCheckedChange={(checked) => handleSettingChange('auctionEndNotifications', checked)}
+                    onCheckedChange={(checked: boolean) => handleSettingChange('auctionEndNotifications', checked)}
                   />
                 </div>
               </div>
@@ -569,7 +605,7 @@ export function AdminSettings() {
                         type="checkbox"
                         id={format}
                         checked={settings.allowedImageFormats.includes(format)}
-                        onChange={(e) => {
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                           const formats = settings.allowedImageFormats;
                           if (e.target.checked) {
                             handleSettingChange('allowedImageFormats', [...formats, format]);
@@ -593,7 +629,7 @@ export function AdminSettings() {
                 </div>
                 <Switch
                   checked={settings.moderationRequired}
-                  onCheckedChange={(checked) => handleSettingChange('moderationRequired', checked)}
+                  onCheckedChange={(checked: boolean) => handleSettingChange('moderationRequired', checked)}
                 />
               </div>
             </CardContent>

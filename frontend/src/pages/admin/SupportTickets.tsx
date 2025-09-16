@@ -1,22 +1,34 @@
 import { useState } from 'react';
 import { Search, Filter, MoreHorizontal, MessageCircle, User, Clock, AlertTriangle, CheckCircle } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Badge } from '../ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Textarea } from '../ui/textarea';
+import { Button } from '../../components/button';
+import { Input } from '../../components/input';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/card';
+import { Badge } from '../../components/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/dropdown-menu';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/tabs';
+import { Avatar, AvatarFallback, AvatarImage } from '../../components/avatar';
+import { Textarea } from '../../components/textarea';
+
+type Ticket = {
+  id: string;
+  subject: string;
+  user: { name: string; email: string; avatar: string | null };
+  status: string;
+  priority: string;
+  category: string;
+  createdAt: string;
+  lastUpdated: string;
+  messages: { id: number; sender: string; message: string; timestamp: string }[];
+};
 
 export function SupportTickets() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [priorityFilter, setPriorityFilter] = useState('all');
-  const [selectedTicket, setSelectedTicket] = useState(null);
-  const [replyMessage, setReplyMessage] = useState('');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [replyMessage, setReplyMessage] = useState<string>('');
 
   const tickets = [
     {
@@ -260,7 +272,7 @@ export function SupportTickets() {
                     <Input
                       placeholder="Search tickets..."
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                       className="pl-10 w-64"
                     />
                   </div>
@@ -419,7 +431,7 @@ export function SupportTickets() {
                   <Textarea
                     placeholder="Type your reply..."
                     value={replyMessage}
-                    onChange={(e) => setReplyMessage(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReplyMessage(e.target.value)}
                     rows={3}
                   />
                   <div className="flex justify-between">

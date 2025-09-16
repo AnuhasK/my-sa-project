@@ -1,6 +1,6 @@
 import { Search, User, Menu, X } from 'lucide-react';
-import { Button } from '../../components/button';
-import { Input } from '../../components/input';
+import { Button } from './button';
+import { Input } from './input';
 import { useState } from 'react';
 
 interface HeaderProps {

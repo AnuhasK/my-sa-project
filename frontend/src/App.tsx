@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Header } from './pages/user/Header';
-import { Footer } from './pages/user/Footer';
-import { HomePage } from './pages/user/HomePage';
+import { Header } from './components/Header';
+import { Footer } from './components/Footer';
+import { HomePage } from './pages/public/HomePage';
 import { AuctionListingPage } from './pages/user/AuctionListingPage';
 import { AuctionDetailsPage } from './pages/user/AuctionDetailsPage';
-import { AuthForms } from './pages/user/AuthForms';
+import { AuthForms } from './pages/public/AuthForms';
 import { UserDashboard } from './pages/user/UserDashboard';
 import { AdminSidebar } from './pages/admin/AdminSidebar';
 import { AdminDashboard } from './pages/admin/AdminDashboard';

@@ -1,7 +1,7 @@
 import { Search, Gavel, Shield, Clock, TrendingUp, ArrowRight } from 'lucide-react';
 import { Button } from '../../components/button';
 import { Input } from '../../components/input';
-import { AuctionCard } from './AuctionCard';
+import { AuctionCard } from '../user/AuctionCard';
 
 interface HomePageProps {
   setCurrentPage: (page: string) => void;

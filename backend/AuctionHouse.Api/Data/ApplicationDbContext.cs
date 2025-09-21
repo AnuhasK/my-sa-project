@@ -1,0 +1,62 @@
+using AuctionHouse.Api.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace AuctionHouse.Api.Data
+{
+    public class ApplicationDbContext : DbContext
+    {
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
+
+        public DbSet<User> Users { get; set; }
+        public DbSet<Auction> Auctions { get; set; }
+        public DbSet<Bid> Bids { get; set; }
+        public DbSet<AuctionImage> AuctionImages { get; set; }
+        public DbSet<Transaction> Transactions { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
+            modelBuilder.Entity<Auction>()
+        .HasMany(a => a.Bids)
+        .WithOne(b => b.Auction)
+        .HasForeignKey(b => b.AuctionId)
+        .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Bid>()
+        .HasOne(b => b.Bidder)
+        .WithMany()
+        .HasForeignKey(b => b.BidderId)
+        .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Auction>()
+        .HasMany(a => a.Transactions)
+        .WithOne(t => t.Auction)
+        .HasForeignKey(t => t.AuctionId)
+        .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Transaction>()
+        .HasOne(t => t.Buyer)
+        .WithMany()
+        .HasForeignKey(t => t.BuyerId)
+        .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Auction>()
+                .Property(a => a.CurrentPrice)
+                .HasPrecision(18, 2); // 18 digits, 2 decimal places
+
+            modelBuilder.Entity<Auction>()
+                .Property(a => a.StartPrice)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<Bid>()
+                .Property(b => b.Amount)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<Transaction>()
+                .Property(t => t.Amount)
+                .HasPrecision(18, 2);
+
+            base.OnModelCreating(modelBuilder);
+        }
+    }
+}

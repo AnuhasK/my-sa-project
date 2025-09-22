@@ -14,8 +14,9 @@ class ApiService {
   // Helper method to handle API responses
   async handleResponse(response) {
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(error || 'API request failed');
+      const errorText = await response.text();
+      console.error('API Error Response:', response.status, errorText);
+      throw new Error(errorText || `HTTP ${response.status}: API request failed`);
     }
     return response.json();
   }
@@ -27,16 +28,53 @@ class ApiService {
       headers: this.getAuthHeaders(),
       body: JSON.stringify(credentials),
     });
-    return this.handleResponse(response);
+    const data = await this.handleResponse(response);
+    
+    // Transform backend response to frontend format
+    if (data.userId && data.username && data.token) {
+      return {
+        token: data.token,
+        user: {
+          id: data.userId,
+          username: data.username
+        }
+      };
+    }
+    return data;
   }
 
   async register(userData) {
-    const response = await fetch(`${API_BASE_URL}/auth/register`, {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify(userData),
-    });
-    return this.handleResponse(response);
+    // Convert userName to Username for backend compatibility
+    const requestData = {
+      Username: userData.userName,
+      Email: userData.email,
+      Password: userData.password
+    };
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(requestData),
+      });
+      
+      const data = await this.handleResponse(response);
+      
+      // Transform backend response to frontend format
+      if (data.userId && data.username && data.token) {
+        return {
+          token: data.token,
+          user: {
+            id: data.userId,
+            username: data.username
+          }
+        };
+      }
+      return data;
+    } catch (error) {
+      console.error('Registration request failed:', error);
+      throw error;
+    }
   }
 
   async logout(token) {

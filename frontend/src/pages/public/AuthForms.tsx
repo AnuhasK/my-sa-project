@@ -5,6 +5,7 @@ import { Input } from '../../components/input';
 import { Label } from '../../components/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/card';
 import { Checkbox } from '../../components/checkbox';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface AuthFormsProps {
   mode: 'login' | 'register' | 'reset-password';
@@ -13,14 +14,15 @@ interface AuthFormsProps {
 }
 
 export function AuthForms({ mode, setCurrentPage, setIsLoggedIn }: AuthFormsProps) {
+  const { login, register, loading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     confirmPassword: '',
-    firstName: '',
-    lastName: '',
+    userName: '', // Changed from firstName/lastName to userName for backend
     acceptTerms: false
   });
 
@@ -28,15 +30,59 @@ export function AuthForms({ mode, setCurrentPage, setIsLoggedIn }: AuthFormsProp
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     
-    if (mode === 'login' || mode === 'register') {
-      setIsLoggedIn(true);
-      setCurrentPage('home');
-    } else if (mode === 'reset-password') {
-      // Handle password reset
-      setCurrentPage('login');
+    try {
+      if (mode === 'login') {
+        const success = await login({
+          email: formData.email,
+          password: formData.password
+        });
+        
+        if (success) {
+          setIsLoggedIn(true);
+          setCurrentPage('home');
+        } else {
+          setError('Invalid email or password');
+        }
+      } else if (mode === 'register') {
+        if (formData.password !== formData.confirmPassword) {
+          setError('Passwords do not match');
+          return;
+        }
+        
+        if (formData.password.length < 4) {
+          setError('Password must be at least 4 characters long');
+          return;
+        }
+        
+        if (!formData.acceptTerms) {
+          setError('Please accept the terms and conditions');
+          return;
+        }
+        
+        const success = await register({
+          userName: formData.userName,
+          email: formData.email,
+          password: formData.password
+        });
+        
+        if (success) {
+          setIsLoggedIn(true);
+          setCurrentPage('home');
+        } else {
+          setError('Registration failed. Please try again.');
+        }
+      } else if (mode === 'reset-password') {
+        // Handle password reset - would need backend endpoint
+        setError('Password reset functionality coming soon');
+        // setCurrentPage('login');
+      }
+    } catch (error) {
+      setError('An error occurred. Please try again.');
+      console.error('Auth error:', error);
     }
   };
 
@@ -86,29 +132,16 @@ export function AuthForms({ mode, setCurrentPage, setIsLoggedIn }: AuthFormsProp
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Register Form Fields */}
               {mode === 'register' && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
-                    <Input
-                      id="firstName"
-                      type="text"
-                      value={formData.firstName}
-                      onChange={(e) => handleInputChange('firstName', e.target.value)}
-                      className="border-gray-200 focus:border-gray-400 focus:ring-0"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input
-                      id="lastName"
-                      type="text"
-                      value={formData.lastName}
-                      onChange={(e) => handleInputChange('lastName', e.target.value)}
-                      className="border-gray-200 focus:border-gray-400 focus:ring-0"
-                      required
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="userName">Username</Label>
+                  <Input
+                    id="userName"
+                    type="text"
+                    value={formData.userName}
+                    onChange={(e) => handleInputChange('userName', e.target.value)}
+                    className="border-gray-200 focus:border-gray-400 focus:ring-0"
+                    required
+                  />
                 </div>
               )}
 
@@ -149,6 +182,11 @@ export function AuthForms({ mode, setCurrentPage, setIsLoggedIn }: AuthFormsProp
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
+                    {mode === 'register' && (
+                      <p className="text-sm text-gray-500">
+                        Password must be at least 4 characters long
+                      </p>
+                    )}
                   </div>
 
                   {/* Confirm Password for Register */}
@@ -214,15 +252,33 @@ export function AuthForms({ mode, setCurrentPage, setIsLoggedIn }: AuthFormsProp
                 </div>
               )}
 
+              {/* Error Message */}
+              {error && (
+                <div className="text-red-500 text-sm text-center bg-red-50 p-3 rounded-md">
+                  {error}
+                </div>
+              )}
+
               {/* Submit Button */}
               <Button
                 type="submit"
                 className="w-full bg-black text-white hover:bg-gray-800 py-3"
-                disabled={mode === 'register' && !formData.acceptTerms}
+                disabled={(mode === 'register' && !formData.acceptTerms) || loading}
               >
-                {mode === 'login' && 'Sign In'}
-                {mode === 'register' && 'Create Account'}
-                {mode === 'reset-password' && 'Send Reset Link'}
+                {loading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    {mode === 'login' && 'Signing In...'}
+                    {mode === 'register' && 'Creating Account...'}
+                    {mode === 'reset-password' && 'Sending Reset Link...'}
+                  </div>
+                ) : (
+                  <>
+                    {mode === 'login' && 'Sign In'}
+                    {mode === 'register' && 'Create Account'}
+                    {mode === 'reset-password' && 'Send Reset Link'}
+                  </>
+                )}
               </Button>
 
               {/* Divider */}

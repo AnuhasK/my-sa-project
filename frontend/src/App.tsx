@@ -16,6 +16,7 @@ import { AdminSettings } from './pages/admin/AdminSettings';
 import { SupportTickets } from './pages/admin/SupportTickets';
 import { Button } from './components/button';
 import { Toaster } from './components/sonner';
+import { AuthProvider } from './contexts/AuthContext';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('home');
@@ -139,40 +140,42 @@ export default function App() {
   const isAdminPage = currentPage.startsWith('admin-');
 
   return (
-    <div className="min-h-screen bg-white flex">
-      {/* Admin Layout */}
-      {isAdminPage ? (
-        <>
-          <AdminSidebar 
-            currentPage={currentPage}
-            setCurrentPage={setCurrentPage}
-            setIsLoggedIn={setIsLoggedIn}
-          />
-          <main className="flex-1 lg:ml-64 bg-gray-50">
-            {renderCurrentPage()}
-          </main>
-        </>
-      ) : (
-        /* Regular Layout */
-        <div className="flex flex-col w-full">
-          {shouldShowHeaderFooter && (
-            <Header 
+    <AuthProvider>
+      <div className="min-h-screen bg-white flex">
+        {/* Admin Layout */}
+        {isAdminPage ? (
+          <>
+            <AdminSidebar 
               currentPage={currentPage}
               setCurrentPage={setCurrentPage}
-              isLoggedIn={isLoggedIn}
               setIsLoggedIn={setIsLoggedIn}
             />
-          )}
-          
-          <main className="flex-1">
-            {renderCurrentPage()}
-          </main>
-          
-          {shouldShowHeaderFooter && <Footer />}
-        </div>
-      )}
-      
-      <Toaster />
-    </div>
+            <main className="flex-1 lg:ml-64 bg-gray-50">
+              {renderCurrentPage()}
+            </main>
+          </>
+        ) : (
+          /* Regular Layout */
+          <div className="flex flex-col w-full">
+            {shouldShowHeaderFooter && (
+              <Header 
+                currentPage={currentPage}
+                setCurrentPage={setCurrentPage}
+                isLoggedIn={isLoggedIn}
+                setIsLoggedIn={setIsLoggedIn}
+              />
+            )}
+            
+            <main className="flex-1">
+              {renderCurrentPage()}
+            </main>
+            
+            {shouldShowHeaderFooter && <Footer />}
+          </div>
+        )}
+        
+        <Toaster />
+      </div>
+    </AuthProvider>
   );
 }

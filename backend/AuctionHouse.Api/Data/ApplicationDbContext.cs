@@ -12,6 +12,7 @@ namespace AuctionHouse.Api.Data
         public DbSet<Bid> Bids { get; set; }
         public DbSet<AuctionImage> AuctionImages { get; set; }
         public DbSet<Transaction> Transactions { get; set; }
+        public DbSet<Category> Categories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -39,6 +40,18 @@ namespace AuctionHouse.Api.Data
         .WithMany()
         .HasForeignKey(t => t.BuyerId)
         .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Auction>()
+        .HasMany(a => a.Images)
+        .WithOne(i => i.Auction)
+        .HasForeignKey(i => i.AuctionId)
+        .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Auction>()
+        .HasOne(a => a.Category)
+        .WithMany(c => c.Auctions)
+        .HasForeignKey(a => a.CategoryId)
+        .OnDelete(DeleteBehavior.SetNull);
 
         modelBuilder.Entity<Auction>()
                 .Property(a => a.CurrentPrice)

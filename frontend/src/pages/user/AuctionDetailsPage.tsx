@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, Heart, Share2, Eye, User, MapPin, Clock, Gavel, Shield, TrendingUp } from 'lucide-react';
 import { Button } from '../../components/button';
 import { Input } from '../../components/input';
@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/tabs'
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/card';
 import { CountdownTimer } from './CountdownTimer';
+import { api } from '../../services/api';
 
 interface AuctionDetailsPageProps {
   auctionId: string;
@@ -17,69 +18,133 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage }: AuctionDetails
   const [bidAmount, setBidAmount] = useState('');
   const [selectedImage, setSelectedImage] = useState(0);
   const [isWatching, setIsWatching] = useState(false);
+  const [auction, setAuction] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [bidHistory, setBidHistory] = useState<any[]>([]);
 
-  // Mock auction data
-  const auction = {
-    id: auctionId,
-    title: 'Vintage Omega Speedmaster Professional Moonwatch',
-    currentBid: 2850,
-    minBid: 2900,
-    buyNowPrice: 4200,
-    timeLeft: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 14 * 60 * 60 * 1000), // 2d 14h from now
-    images: [
-      'https://images.unsplash.com/photo-1695528589305-5103f5c52306?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aW50YWdlJTIwd2F0Y2glMjBsdXh1cnklMjBhdWN0aW9ufGVufDF8fHx8MTc1NzUwMDE3Nnww&ixlib=rb-4.1.0&q=80&w=1080',
-      'https://images.unsplash.com/photo-1695528589305-5103f5c52306?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aW50YWdlJTIwd2F0Y2glMjBsdXh1cnklMjBhdWN0aW9ufGVufDF8fHx8MTc1NzUwMDE3Nnww&ixlib=rb-4.1.0&q=80&w=1080',
-      'https://images.unsplash.com/photo-1695528589305-5103f5c52306?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aW50YWdlJTIwd2F0Y2glMjBsdXh1cnklMjBhdWN0aW9ufGVufDF8fHx8MTc1NzUwMDE3Nnww&ixlib=rb-4.1.0&q=80&w=1080'
-    ],
-    category: 'Watches',
-    condition: 'Very Good',
-    views: 1247,
-    watchers: 89,
-    bids: 23,
-    description: `This exceptional Omega Speedmaster Professional is a true collector's piece. Known as the "Moonwatch," this timepiece has a rich history and remains one of the most iconic chronographs ever made.
+  // Fetch auction details from backend
+  useEffect(() => {
+    const fetchAuctionDetails = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const auctionData = await api.getAuction(auctionId);
+        console.log('Fetched auction details:', auctionData);
+        
+        // Transform backend data to match frontend expectations
+        const transformedAuction = {
+          id: auctionData.id,
+          title: auctionData.title,
+          currentBid: auctionData.currentPrice || auctionData.startPrice || 0,
+          minBid: auctionData.currentPrice ? auctionData.currentPrice + 50 : auctionData.startPrice + 50,
+          buyNowPrice: null, // Not in backend DTO currently
+          timeLeft: new Date(auctionData.endTime),
+          images: auctionData.imageUrls && auctionData.imageUrls.length > 0 ? auctionData.imageUrls : [
+            'https://images.unsplash.com/photo-1695528589305-5103f5c52306?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aW50YWdlJTIwd2F0Y2glMjBsdXh1cnklMjBhdWN0aW9ufGVufDF8fHx8MTc1NzUwMDE3Nnww&ixlib=rb-4.1.0&q=80&w=1080'
+          ],
+          category: auctionData.category || 'General',
+          condition: auctionData.condition || 'Good',
+          views: auctionData.views || 0,
+          watchers: auctionData.watchers || 0,
+          bids: auctionData.bidCount || 0,
+          description: auctionData.description || 'No description available.',
+          seller: {
+            name: auctionData.seller?.username || auctionData.sellerName || 'Anonymous',
+            rating: 4.8,
+            reviews: 120,
+            memberSince: '2020',
+            location: 'Location not specified',
+            avatar: null
+          },
+          shipping: {
+            cost: 25,
+            methods: ['Standard Shipping', 'Express Shipping']
+          }
+        };
+        
+        setAuction(transformedAuction);
+        
+        // Also fetch bid history if available
+        try {
+          const bidsData = await api.getBidsForAuction(auctionId);
+          const transformedBids = bidsData.map((bid: any, index: number) => ({
+            bidder: `${bid.bidder?.username?.substring(0, 1)}***${bid.bidder?.username?.slice(-1)}` || `u***r`,
+            amount: bid.amount,
+            time: formatTimeAgo(bid.createdAt)
+          }));
+          setBidHistory(transformedBids);
+        } catch (bidError) {
+          console.log('Could not fetch bid history:', bidError);
+          setBidHistory([]);
+        }
+        
+      } catch (err) {
+        console.error('Error fetching auction details:', err);
+        setError('Failed to load auction details. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    Key Features:
-    • Authentic Omega Speedmaster Professional
-    • Manual wind movement 
-    • Hesalite crystal (original specification)
-    • Stainless steel case and bracelet
-    • Black dial with luminous markers
-    • Tachymeter bezel
-    • Water resistant to 50m
-
-    This particular example shows honest wear consistent with its age but has been well-maintained. The movement keeps excellent time and all chronograph functions operate smoothly. Original box and papers are not included, but authenticity is guaranteed.
-
-    A perfect addition to any serious watch collection.`,
-    seller: {
-      name: 'TimeCollector',
-      rating: 4.9,
-      reviews: 147,
-      memberSince: '2019',
-      location: 'New York, NY',
-      avatar: null
-    },
-    shipping: {
-      cost: 25,
-      methods: ['Standard Shipping', 'Express Shipping', 'International Available']
+    if (auctionId) {
+      fetchAuctionDetails();
     }
+  }, [auctionId]);
+
+  // Helper function to format time ago
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
+    if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    return 'Just now';
   };
 
-  const bidHistory = [
-    { bidder: 'w***r', amount: 2850, time: '2 minutes ago' },
-    { bidder: 'c***k', amount: 2800, time: '15 minutes ago' },
-    { bidder: 'w***r', amount: 2750, time: '32 minutes ago' },
-    { bidder: 'm***s', amount: 2700, time: '1 hour ago' },
-    { bidder: 'c***k', amount: 2650, time: '2 hours ago' }
-  ];
-
-  const handlePlaceBid = () => {
+  const handlePlaceBid = async () => {
     const bid = parseFloat(bidAmount);
     if (bid >= auction.minBid) {
-      // Handle bid placement
-      console.log('Placing bid:', bid);
-      setBidAmount('');
+      try {
+        // TODO: Implement bid placement with authentication
+        console.log('Placing bid:', bid);
+        // await api.placeBid(auctionId, bid, userToken);
+        setBidAmount('');
+        // Refresh auction data after bid
+        // await fetchAuctionDetails();
+      } catch (error) {
+        console.error('Error placing bid:', error);
+      }
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-gray-600">Loading auction details...</div>
+      </div>
+    );
+  }
+
+  if (error || !auction) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-600 mb-4">{error || 'Auction not found'}</div>
+          <Button onClick={() => setCurrentPage('auctions')}>
+            Back to Auctions
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -122,7 +187,7 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage }: AuctionDetails
 
               {/* Thumbnail Images */}
               <div className="flex space-x-2">
-                {auction.images.map((image, index) => (
+                {auction.images.map((image: string, index: number) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImage(index)}
@@ -166,7 +231,7 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage }: AuctionDetails
                         <div>
                           <span className="text-gray-600 block mb-2">Available Methods:</span>
                           <ul className="space-y-1">
-                            {auction.shipping.methods.map((method, index) => (
+                            {auction.shipping.methods.map((method: string, index: number) => (
                               <li key={index} className="text-sm text-gray-700">• {method}</li>
                             ))}
                           </ul>

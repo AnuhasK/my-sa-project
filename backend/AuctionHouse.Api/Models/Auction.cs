@@ -13,6 +13,8 @@ namespace AuctionHouse.Api.Models
         public DateTime EndTime { get; set; }
         public int SellerId { get; set; }
         public User Seller { get; set; } = null!;
+        public int? CategoryId { get; set; }
+        public Category? Category { get; set; }
         public string Status { get; set; } = "Scheduled"; // Scheduled, Open, Closed
         public ICollection<Bid> Bids { get; set; } = new List<Bid>();
         public ICollection<AuctionImage> Images { get; set; } = new List<AuctionImage>();

@@ -30,11 +30,27 @@ export function AuctionCard({
       onClick={onClick}
     >
       <div className="relative">
-        <img
-          src={imageUrl}
-          alt={title}
-          className="w-full h-48 object-cover"
-        />
+        {imageUrl && imageUrl !== '/img/placeholder-auction.jpg' ? (
+          <img
+            src={imageUrl}
+            alt={title}
+            className="w-full h-48 object-cover"
+            onError={(e) => {
+              // Fallback to placeholder if image fails to load
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+              target.nextElementSibling?.classList.remove('hidden');
+            }}
+          />
+        ) : null}
+        <div 
+          className={`w-full h-48 bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center justify-center text-gray-500 ${
+            imageUrl && imageUrl !== '/img/placeholder-auction.jpg' ? 'hidden' : ''
+          }`}
+        >
+          <div className="text-4xl mb-2">🏛️</div>
+          <div className="text-sm text-center px-4">Auction Item</div>
+        </div>
         {isEnding && (
           <Badge className="absolute top-3 left-3 bg-red-600 text-white">
             Ending Soon

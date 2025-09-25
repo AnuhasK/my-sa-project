@@ -231,6 +231,54 @@ class ApiService {
     });
     return this.handleResponse(response);
   }
+
+  // Image upload endpoints
+  async uploadImage(file, token) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE_URL}/images/upload`, {
+      method: 'POST',
+      headers: {
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+        // Don't set Content-Type, let browser set it for FormData
+      },
+      body: formData,
+    });
+    return this.handleResponse(response);
+  }
+
+  async deleteImage(fileName, token) {
+    const response = await fetch(`${API_BASE_URL}/images/${fileName}`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  // Category endpoints
+  async getCategories() {
+    const response = await fetch(`${API_BASE_URL}/categories`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(),
+    });
+    return this.handleResponse(response);
+  }
+
+  async getCategory(id) {
+    const response = await fetch(`${API_BASE_URL}/categories/${id}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(),
+    });
+    return this.handleResponse(response);
+  }
+
+  // Helper method to get image URL
+  getImageUrl(imagePath) {
+    if (!imagePath) return null;
+    if (imagePath.startsWith('http')) return imagePath;
+    return `${API_BASE_URL.replace('/api', '')}${imagePath}`;
+  }
 }
 
 export const api = new ApiService();

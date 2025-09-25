@@ -4,6 +4,7 @@ using AuctionHouse.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AuctionHouse.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250924162904_AddAuctionImagesRelationship")]
+    partial class AddAuctionImagesRelationship
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -29,9 +32,6 @@ namespace AuctionHouse.Api.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("CategoryId")
-                        .HasColumnType("int");
 
                     b.Property<decimal>("CurrentPrice")
                         .HasPrecision(18, 2)
@@ -63,8 +63,6 @@ namespace AuctionHouse.Api.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CategoryId");
 
                     b.HasIndex("SellerId");
 
@@ -121,28 +119,6 @@ namespace AuctionHouse.Api.Migrations
                     b.HasIndex("BidderId");
 
                     b.ToTable("Bids");
-                });
-
-            modelBuilder.Entity("AuctionHouse.Api.Models.Category", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Categories");
                 });
 
             modelBuilder.Entity("AuctionHouse.Api.Models.Transaction", b =>
@@ -213,18 +189,11 @@ namespace AuctionHouse.Api.Migrations
 
             modelBuilder.Entity("AuctionHouse.Api.Models.Auction", b =>
                 {
-                    b.HasOne("AuctionHouse.Api.Models.Category", "Category")
-                        .WithMany("Auctions")
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("AuctionHouse.Api.Models.User", "Seller")
                         .WithMany()
                         .HasForeignKey("SellerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Category");
 
                     b.Navigation("Seller");
                 });
@@ -285,11 +254,6 @@ namespace AuctionHouse.Api.Migrations
                     b.Navigation("Images");
 
                     b.Navigation("Transactions");
-                });
-
-            modelBuilder.Entity("AuctionHouse.Api.Models.Category", b =>
-                {
-                    b.Navigation("Auctions");
                 });
 #pragma warning restore 612, 618
         }

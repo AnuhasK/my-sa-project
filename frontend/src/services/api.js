@@ -249,9 +249,21 @@ class ApiService {
     return this.handleResponse(response);
   }
 
-  // Notifications endpoints (when implemented)
-  async getNotifications(token) {
-    const response = await fetch(`${API_BASE_URL}/notifications`, {
+  // Notifications endpoints
+  async getNotifications(token, pageNumber = 1, pageSize = 10, isRead = null) {
+    let url = `${API_BASE_URL}/notifications?pageNumber=${pageNumber}&pageSize=${pageSize}`;
+    if (isRead !== null) {
+      url += `&isRead=${isRead}`;
+    }
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  async getUnreadCount(token) {
+    const response = await fetch(`${API_BASE_URL}/notifications/unread-count`, {
       method: 'GET',
       headers: this.getAuthHeaders(token),
     });
@@ -261,6 +273,22 @@ class ApiService {
   async markNotificationAsRead(id, token) {
     const response = await fetch(`${API_BASE_URL}/notifications/${id}/read`, {
       method: 'PUT',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  async markAllNotificationsAsRead(token) {
+    const response = await fetch(`${API_BASE_URL}/notifications/mark-all-read`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  async deleteNotification(id, token) {
+    const response = await fetch(`${API_BASE_URL}/notifications/${id}`, {
+      method: 'DELETE',
       headers: this.getAuthHeaders(token),
     });
     return this.handleResponse(response);

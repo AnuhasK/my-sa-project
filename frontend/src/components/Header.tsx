@@ -2,6 +2,8 @@ import { Search, User, Menu, X } from 'lucide-react';
 import { Button } from './button';
 import { Input } from './input';
 import { useState } from 'react';
+import { NotificationBell } from './NotificationBell';
+import { useAuth } from '../contexts/AuthContext';
 
 interface HeaderProps {
   currentPage: string;
@@ -12,6 +14,7 @@ interface HeaderProps {
 
 export function Header({ currentPage, setCurrentPage, isLoggedIn, setIsLoggedIn }: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { token } = useAuth();
 
   const navigationItems = [
     { label: 'Home', key: 'home' },
@@ -65,6 +68,13 @@ export function Header({ currentPage, setCurrentPage, isLoggedIn, setIsLoggedIn 
               />
             </div>
           </div>
+
+          {/* Notification Bell */}
+          {isLoggedIn && token && (
+            <div className="hidden sm:flex items-center mr-4">
+              <NotificationBell token={token} isLoggedIn={isLoggedIn} />
+            </div>
+          )}
 
           {/* Auth Buttons */}
           <div className="flex items-center space-x-4">

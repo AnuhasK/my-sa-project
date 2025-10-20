@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Filter, Grid, List, SlidersHorizontal } from 'lucide-react';
 import { Button } from '../../components/button';
 import { Input } from '../../components/input';
@@ -7,19 +7,100 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../.
 import { Checkbox } from '../../components/checkbox';
 import { Slider } from '../../components/slider';
 import { AuctionCard } from './AuctionCard';
+import AuctionFilters from '../../components/AuctionFilters';
+import api from '../../services/api';
 
 interface AuctionListingPageProps {
   setCurrentPage: (page: string) => void;
   setSelectedAuction: (id: string) => void;
 }
 
+interface Auction {
+  id: number;
+  title: string;
+  description: string;
+  currentPrice: number;
+  startTime: string;
+  endTime: string;
+  status: string;
+  categoryName: string;
+  categoryId: number;
+  primaryImageUrl?: string;
+  bidCount: number;
+}
+
 export function AuctionListingPage({ setCurrentPage, setSelectedAuction }: AuctionListingPageProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [auctions, setAuctions] = useState<Auction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState('ending-soon');
   const [priceRange, setPriceRange] = useState([0, 10000]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [currentFilters, setCurrentFilters] = useState<any>({});
 
-  const auctions = [
+  // Fetch auctions on mount and when filters change
+  useEffect(() => {
+    fetchAuctions(currentFilters);
+  }, [currentFilters]);
+
+  const fetchAuctions = async (filters: any) => {
+    try {
+      setLoading(true);
+      const data = await api.getAuctions(filters);
+      setAuctions(data);
+      setError(null);
+    } catch (err: any) {
+      console.error('Failed to fetch auctions:', err);
+      setError('Failed to load auctions. Please try again.');
+      setAuctions([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFilterChange = (filters: any) => {
+    setCurrentFilters(filters);
+  };
+
+  const handleClearFilters = () => {
+    setCurrentFilters({});
+  };
+
+  const formatTimeLeft = (endTime: string) => {
+    const now = new Date();
+    const end = new Date(endTime);
+    const diff = end.getTime() - now.getTime();
+    
+    if (diff <= 0) return 'Ended';
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (days > 0) return `${days}d ${hours}h`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
+  };
+
+  const formatAuctionForCard = (auction: Auction) => {
+    const timeLeft = formatTimeLeft(auction.endTime);
+    const isEnding = timeLeft !== 'Ended' && !timeLeft.includes('d') && 
+                     (timeLeft.includes('h') || timeLeft.includes('m'));
+
+    return {
+      id: auction.id.toString(),
+      title: auction.title,
+      currentBid: auction.currentPrice,
+      timeLeft: timeLeft,
+      imageUrl: auction.primaryImageUrl || '/img/placeholder-auction.jpg',
+      views: 0, // Not tracked yet
+      category: auction.categoryName,
+      isEnding: isEnding
+    };
+  };
+
+  const mockAuctions = [
     {
       id: '1',
       title: 'Vintage Omega Speedmaster Professional',
@@ -177,9 +258,15 @@ export function AuctionListingPage({ setCurrentPage, setSelectedAuction }: Aucti
           <p className="text-gray-600">Discover unique items from trusted sellers</p>
         </div>
 
+        {/* Phase 3: Search and Filter Component */}
+        <AuctionFilters 
+          onFilterChange={handleFilterChange}
+          onClearFilters={handleClearFilters}
+        />
+
         {/* Search and Filters */}
-        <div className="mb-8 space-y-4">
-          {/* Search Bar */}
+        <div className="mb-8 space-y-4" style={{ display: 'none' }}>
+          {/* Old Search Bar - Hidden */}
           <div className="relative max-w-2xl">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <Input
@@ -267,52 +354,83 @@ export function AuctionListingPage({ setCurrentPage, setSelectedAuction }: Aucti
 
           {/* Main Content */}
           <div className="flex-1">
-            {viewMode === 'grid' ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {auctions.map((auction) => (
-                  <AuctionCard
-                    key={auction.id}
-                    {...auction}
-                    onClick={() => handleAuctionClick(auction.id)}
-                  />
-                ))}
+            {/* Loading State */}
+            {loading && (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+                <p className="mt-4 text-gray-600">Loading auctions...</p>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {auctions.map((auction) => (
-                  <div
-                    key={auction.id}
-                    className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer"
-                    onClick={() => handleAuctionClick(auction.id)}
-                  >
-                    <div className="flex items-center space-x-6">
-                      <img
-                        src={auction.imageUrl}
-                        alt={auction.title}
-                        className="w-24 h-24 object-cover rounded-lg"
+            )}
+
+            {/* Error State */}
+            {error && !loading && (
+              <div className="text-center py-12">
+                <p className="text-red-600">{error}</p>
+              </div>
+            )}
+
+            {/* No Results */}
+            {!loading && !error && auctions.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-gray-600">No auctions found matching your filters.</p>
+                <Button onClick={handleClearFilters} className="mt-4">Clear Filters</Button>
+              </div>
+            )}
+
+            {/* Auction Grid */}
+            {!loading && !error && auctions.length > 0 && (
+              <>
+                {viewMode === 'grid' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {auctions.map((auction) => (
+                      <AuctionCard
+                        key={auction.id}
+                        {...formatAuctionForCard(auction)}
+                        onClick={() => handleAuctionClick(auction.id.toString())}
                       />
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-gray-900 truncate">{auction.title}</h3>
-                        <p className="text-sm text-gray-600 mt-1">{auction.category}</p>
-                        <div className="flex items-center space-x-4 mt-2">
-                          <span className="text-sm text-gray-600">Current Bid:</span>
-                          <span className="font-semibold text-gray-900">${auction.currentBid.toLocaleString()}</span>
-                          <span className="text-sm text-gray-600">{auction.timeLeft} left</span>
-                        </div>
-                      </div>
-                      <Button 
-                        className="bg-black text-white hover:bg-gray-800"
-                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                          e.stopPropagation();
-                          handleAuctionClick(auction.id);
-                        }}
-                      >
-                        View Details
-                      </Button>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                ) : (
+                  <div className="space-y-4">
+                    {auctions.map((auction) => {
+                      const formatted = formatAuctionForCard(auction);
+                      return (
+                        <div
+                          key={auction.id}
+                          className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer"
+                          onClick={() => handleAuctionClick(auction.id.toString())}
+                        >
+                          <div className="flex items-center space-x-6">
+                            <img
+                              src={formatted.imageUrl}
+                              alt={formatted.title}
+                              className="w-24 h-24 object-cover rounded-lg"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium text-gray-900 truncate">{formatted.title}</h3>
+                              <p className="text-sm text-gray-600 mt-1">{formatted.category}</p>
+                              <div className="flex items-center space-x-4 mt-2">
+                                <span className="text-sm text-gray-600">Current Bid:</span>
+                                <span className="font-semibold text-gray-900">${formatted.currentBid.toLocaleString()}</span>
+                                <span className="text-sm text-gray-600">{formatted.timeLeft} left</span>
+                              </div>
+                            </div>
+                            <Button 
+                              className="bg-black text-white hover:bg-gray-800"
+                              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                                e.stopPropagation();
+                                handleAuctionClick(auction.id.toString());
+                              }}
+                            >
+                              View Details
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
             )}
 
             {/* Pagination */}

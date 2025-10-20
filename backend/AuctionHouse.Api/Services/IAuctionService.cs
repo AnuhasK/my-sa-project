@@ -5,7 +5,14 @@ namespace AuctionHouse.Api.Services
 {
     public interface IAuctionService
     {
-        Task<IEnumerable<AuctionListDto>> GetAllAsync();
+        Task<IEnumerable<AuctionListDto>> GetAllAsync(
+            string? search = null,
+            int? categoryId = null,
+            string? status = null,
+            decimal? minPrice = null,
+            decimal? maxPrice = null,
+            string? sortBy = null
+        );
         Task<AuctionResponseDto?> GetByIdAsync(int id);
         Task<Auction> CreateAsync(int sellerId, AuctionCreateDto dto);
         Task CloseAuctionAsync(int id);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Heart, Gavel, Bell, Settings, Eye, Clock, DollarSign, Trophy, ArrowRight } from 'lucide-react';
+import { User, Heart, Gavel, Bell, Settings, Eye, Clock, DollarSign, Trophy, ArrowRight, Receipt } from 'lucide-react';
 import { Button } from '../../components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/tabs';
@@ -7,6 +7,7 @@ import { Badge } from '../../components/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/avatar';
 import { AuctionCard } from './AuctionCard';
 import { api } from '../../services/api';
+import { TransactionsList } from '../../components/TransactionsList';
 
 interface UserDashboardProps {
   setCurrentPage: (page: string) => void;
@@ -238,11 +239,12 @@ export function UserDashboard({ setCurrentPage, setSelectedAuction }: UserDashbo
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-white">
+          <TabsList className="grid w-full grid-cols-6 bg-white">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="bids">My Bids</TabsTrigger>
             <TabsTrigger value="watching">Watching</TabsTrigger>
             <TabsTrigger value="won">Won Items</TabsTrigger>
+            <TabsTrigger value="transactions">Transactions</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
 
@@ -489,6 +491,35 @@ export function UserDashboard({ setCurrentPage, setSelectedAuction }: UserDashbo
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Transactions Tab */}
+          <TabsContent value="transactions" className="space-y-6">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Receipt className="w-5 h-5" />
+                    My Purchases
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TransactionsList type="buyer" />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="w-5 h-5" />
+                    My Sales
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TransactionsList type="seller" />
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

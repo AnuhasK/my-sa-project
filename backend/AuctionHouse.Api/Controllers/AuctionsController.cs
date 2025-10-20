@@ -14,7 +14,17 @@ namespace AuctionHouse.Api.Controllers
         public AuctionsController(IAuctionService svc) { _svc = svc; }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll() => Ok(await _svc.GetAllAsync());
+        public async Task<IActionResult> GetAll(
+            [FromQuery] string? search,
+            [FromQuery] int? categoryId,
+            [FromQuery] string? status,
+            [FromQuery] decimal? minPrice,
+            [FromQuery] decimal? maxPrice,
+            [FromQuery] string? sortBy)
+        {
+            var auctions = await _svc.GetAllAsync(search, categoryId, status, minPrice, maxPrice, sortBy);
+            return Ok(auctions);
+        }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id) => Ok(await _svc.GetByIdAsync(id));

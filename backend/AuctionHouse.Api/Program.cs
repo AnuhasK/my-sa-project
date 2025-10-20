@@ -39,6 +39,12 @@ builder.Services.AddScoped<IBidService, BidService>();
 builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IWatchlistService, WatchlistService>();
+builder.Services.AddScoped<ITransactionService, TransactionService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
+
+// Background Services
+builder.Services.AddHostedService<AuctionClosingService>();
 
 // SignalR
 builder.Services.AddSignalR();

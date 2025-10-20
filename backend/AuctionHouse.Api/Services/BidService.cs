@@ -9,11 +9,13 @@ namespace AuctionHouse.Api.Services
     {
         private readonly ApplicationDbContext _db;
         private readonly IConfiguration _config;
+        private readonly IServiceScopeFactory _scopeFactory;
 
-        public BidService(ApplicationDbContext db, IConfiguration config)
+        public BidService(ApplicationDbContext db, IConfiguration config, IServiceScopeFactory scopeFactory)
         {
             _db = db;
             _config = config;
+            _scopeFactory = scopeFactory;
         }
 
         public async Task<Bid> PlaceBidAsync(int bidderId, int auctionId, decimal amount)
@@ -21,11 +23,18 @@ namespace AuctionHouse.Api.Services
             // simple transactional bid placement
             using var tx = await _db.Database.BeginTransactionAsync();
 
-            var auction = await _db.Auctions.Include(a => a.Bids).FirstOrDefaultAsync(a => a.Id == auctionId);
+            var auction = await _db.Auctions
+                .Include(a => a.Bids.OrderByDescending(b => b.Amount).Take(1))
+                .FirstOrDefaultAsync(a => a.Id == auctionId);
+            
             if (auction == null) throw new ApplicationException("Auction not found");
             var now = DateTime.UtcNow;
             if (auction.Status != "Open" || now < auction.StartTime || now > auction.EndTime)
                 throw new ApplicationException("Auction not open for bidding");
+
+            // Get previous highest bidder (if exists)
+            var previousHighestBid = auction.Bids.FirstOrDefault();
+            int? previousBidderId = previousHighestBid?.BidderId;
 
             // minimum increment (optional config or fixed)
             var minIncrement = 1m;
@@ -52,6 +61,47 @@ namespace AuctionHouse.Api.Services
 
             await _db.SaveChangesAsync();
             await tx.CommitAsync();
+
+            // Create notifications (in background with new scope, don't block bid placement)
+            var sellerId = auction.SellerId;
+            var auctionTitle = auction.Title;
+            
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    using var scope = _scopeFactory.CreateScope();
+                    var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+
+                    // Notify auction owner of new bid
+                    if (sellerId != bidderId)
+                    {
+                        await notificationService.CreateNotificationAsync(
+                            sellerId,
+                            NotificationType.BidPlaced,
+                            "New Bid Placed",
+                            $"Someone placed a ${amount} bid on your auction: {auctionTitle}",
+                            auctionId
+                        );
+                    }
+
+                    // Notify previous highest bidder they've been outbid
+                    if (previousBidderId.HasValue && previousBidderId.Value != bidderId)
+                    {
+                        await notificationService.CreateNotificationAsync(
+                            previousBidderId.Value,
+                            NotificationType.BidOutbid,
+                            "You've Been Outbid!",
+                            $"Someone outbid you on: {auctionTitle}. Current price: ${amount}",
+                            auctionId
+                        );
+                    }
+                }
+                catch
+                {
+                    // Swallow notification errors - don't fail bid placement
+                }
+            });
 
             return bid;
         }

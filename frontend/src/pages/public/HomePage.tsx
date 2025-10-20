@@ -45,7 +45,7 @@ export function HomePage({ setCurrentPage, setSelectedAuction }: HomePageProps) 
         
         // Fetch auctions and categories in parallel
         const [auctionData, categoryData] = await Promise.all([
-          api.getAuctions(1, 6), // Get first 6 auctions for featured
+          api.getAuctions({ status: 'Open', sortBy: 'ending-soon', limit: 6 }), // Get 6 open auctions ending soon
           api.getCategories()
         ]);
         

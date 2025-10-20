@@ -8,7 +8,11 @@ namespace AuctionHouse.Api.Services
     public class AuctionService : IAuctionService
     {
         private readonly ApplicationDbContext _db;
-        public AuctionService(ApplicationDbContext db) { _db = db; }
+        
+        public AuctionService(ApplicationDbContext db) 
+        { 
+            _db = db;
+        }
 
         public async Task<Auction> CreateAsync(int sellerId, AuctionCreateDto dto)
         {
@@ -29,12 +33,62 @@ namespace AuctionHouse.Api.Services
             return auction;
         }
 
-        public async Task<IEnumerable<AuctionListDto>> GetAllAsync()
+        public async Task<IEnumerable<AuctionListDto>> GetAllAsync(
+            string? search = null,
+            int? categoryId = null,
+            string? status = null,
+            decimal? minPrice = null,
+            decimal? maxPrice = null,
+            string? sortBy = null)
         {
-            return await _db.Auctions
+            var query = _db.Auctions
                 .Include(a => a.Images)  // Explicitly include images
                 .Include(a => a.Bids)    // Explicitly include bids for count
                 .Include(a => a.Category) // Explicitly include category
+                .AsQueryable();
+
+            // Apply search filter
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var searchLower = search.ToLower();
+                query = query.Where(a => 
+                    a.Title.ToLower().Contains(searchLower) || 
+                    a.Description.ToLower().Contains(searchLower));
+            }
+
+            // Apply category filter
+            if (categoryId.HasValue && categoryId.Value > 0)
+            {
+                query = query.Where(a => a.CategoryId == categoryId.Value);
+            }
+
+            // Apply status filter
+            if (!string.IsNullOrWhiteSpace(status) && status.ToLower() != "all")
+            {
+                query = query.Where(a => a.Status.ToLower() == status.ToLower());
+            }
+
+            // Apply price range filter
+            if (minPrice.HasValue)
+            {
+                query = query.Where(a => a.CurrentPrice >= minPrice.Value);
+            }
+            if (maxPrice.HasValue)
+            {
+                query = query.Where(a => a.CurrentPrice <= maxPrice.Value);
+            }
+
+            // Apply sorting
+            query = sortBy?.ToLower() switch
+            {
+                "ending-soon" => query.OrderBy(a => a.EndTime),
+                "price-low" => query.OrderBy(a => a.CurrentPrice),
+                "price-high" => query.OrderByDescending(a => a.CurrentPrice),
+                "newest" => query.OrderByDescending(a => a.Id),
+                _ => query.OrderByDescending(a => a.Id) // Default: newest first
+            };
+
+            return await query
                 .Select(a => new AuctionListDto
                 {
                     Id = a.Id,
@@ -84,6 +138,8 @@ namespace AuctionHouse.Api.Services
             if (auction == null) throw new ApplicationException("Auction not found");
             auction.Status = "Closed";
             await _db.SaveChangesAsync();
+            
+            // Note: Transaction creation is handled by AuctionClosingService background job
         }
 
         public async Task<AuctionResponseDto?> UpdateAsync(int id, AuctionUpdateDto dto, int userId, bool isAdmin)

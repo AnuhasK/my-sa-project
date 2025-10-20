@@ -15,6 +15,7 @@ namespace AuctionHouse.Api.Data
         public DbSet<Category> Categories { get; set; }
         public DbSet<Watchlist> Watchlists { get; set; }
         public DbSet<RevokedToken> RevokedTokens { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -89,6 +90,26 @@ namespace AuctionHouse.Api.Data
                 .WithMany()
                 .HasForeignKey(w => w.AuctionId)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            // Notification configuration
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.User)
+                .WithMany()
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Notification>()
+                .HasIndex(n => n.UserId);
+
+            modelBuilder.Entity<Notification>()
+                .HasIndex(n => n.IsRead);
+
+            modelBuilder.Entity<Notification>()
+                .HasIndex(n => n.CreatedAt);
+
+            modelBuilder.Entity<Notification>()
+                .Property(n => n.Type)
+                .HasConversion<string>();
 
             base.OnModelCreating(modelBuilder);
         }

@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../../components/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/card';
 import { CountdownTimer } from './CountdownTimer';
 import { api } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface AuctionDetailsPageProps {
   auctionId: string;
@@ -16,6 +17,7 @@ interface AuctionDetailsPageProps {
 }
 
 export function AuctionDetailsPage({ auctionId, setCurrentPage, isAdmin = false }: AuctionDetailsPageProps) {
+  const { user, token } = useAuth(); // Add auth context
   const [bidAmount, setBidAmount] = useState('');
   const [selectedImage, setSelectedImage] = useState(0);
   const [isWatching, setIsWatching] = useState(false);
@@ -166,17 +168,64 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage, isAdmin = false 
 
   const handlePlaceBid = async () => {
     const bid = parseFloat(bidAmount);
-    if (bid >= auction.minBid) {
+    
+    if (!bid || bid < auction.minBid) {
+      alert(`Bid must be at least $${auction.minBid}`);
+      return;
+    }
+
+    if (!token || !user) {
+      alert('Please login to place a bid');
+      setCurrentPage('login');
+      return;
+    }
+
+    try {
+      // Place bid via API
+      await api.placeBid(auctionId, bid, token);
+      
+      // Clear bid input
+      setBidAmount('');
+      
+      // Refresh auction details to show updated price and bid count
+      const auctionData = await api.getAuction(auctionId);
+      const transformedAuction = {
+        id: auctionData.id,
+        title: auctionData.title,
+        currentBid: auctionData.currentPrice || auctionData.startPrice || 0,
+        minBid: auctionData.currentPrice ? auctionData.currentPrice + 50 : auctionData.startPrice + 50,
+        buyNowPrice: null,
+        timeLeft: new Date(auctionData.endTime),
+        images: auctionData.imageUrls && auctionData.imageUrls.length > 0 ? auctionData.imageUrls : auction.images,
+        category: auctionData.category || 'General',
+        condition: auctionData.condition || 'Good',
+        views: auctionData.views || 0,
+        watchers: auctionData.watchers || 0,
+        bids: auctionData.bidCount || 0,
+        description: auctionData.description || 'No description available.',
+        seller: auction.seller,
+        shipping: auction.shipping
+      };
+      setAuction(transformedAuction);
+      
+      // Refresh bid history
       try {
-        // TODO: Implement bid placement with authentication
-        console.log('Placing bid:', bid);
-        // await api.placeBid(auctionId, bid, userToken);
-        setBidAmount('');
-        // Refresh auction data after bid
-        // await fetchAuctionDetails();
-      } catch (error) {
-        console.error('Error placing bid:', error);
+        const bidsData = await api.getBidsForAuction(auctionId);
+        const transformedBids = bidsData.map((bid: any) => ({
+          bidder: bid.bidderName,
+          amount: bid.amount,
+          time: formatTimeAgo(bid.timestamp)
+        }));
+        setBidHistory(transformedBids);
+      } catch (bidError) {
+        console.log('Could not fetch bid history:', bidError);
       }
+      
+      alert('Bid placed successfully!');
+    } catch (error: any) {
+      console.error('Error placing bid:', error);
+      const errorMessage = error.message || 'Failed to place bid. Please try again.';
+      alert(errorMessage);
     }
   };
 

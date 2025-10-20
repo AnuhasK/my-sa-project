@@ -178,7 +178,7 @@ namespace AuctionHouse.Api.Controllers
                     {
                         AuctionId = x.Auction.Id,
                         Title = x.Auction.Title,
-                        WinningBid = x.WinningBid.Amount,
+                        WinningBid = x.WinningBid!.Amount, // ! tells compiler we know it's not null
                         EndedAt = x.Auction.EndTime
                     })
                     .ToListAsync();

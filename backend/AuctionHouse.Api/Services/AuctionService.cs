@@ -16,14 +16,35 @@ namespace AuctionHouse.Api.Services
 
         public async Task<Auction> CreateAsync(int sellerId, AuctionCreateDto dto)
         {
+            // Validate times
+            var now = DateTime.UtcNow;
+            var startTimeUtc = dto.StartTime.ToUniversalTime();
+            var endTimeUtc = dto.EndTime.ToUniversalTime();
+
+            if (startTimeUtc <= now)
+            {
+                throw new ApplicationException("Start time must be in the future");
+            }
+
+            if (endTimeUtc <= startTimeUtc)
+            {
+                throw new ApplicationException("End time must be after start time");
+            }
+
+            var duration = endTimeUtc - startTimeUtc;
+            if (duration.TotalHours < 1)
+            {
+                throw new ApplicationException("Auction must run for at least 1 hour");
+            }
+
             var auction = new Auction
             {
                 Title = dto.Title,
                 Description = dto.Description,
                 StartPrice = dto.StartPrice,
                 CurrentPrice = dto.StartPrice,
-                StartTime = dto.StartTime.ToUniversalTime(),
-                EndTime = dto.EndTime.ToUniversalTime(),
+                StartTime = startTimeUtc,
+                EndTime = endTimeUtc,
                 SellerId = sellerId,
                 CategoryId = dto.CategoryId > 0 ? dto.CategoryId : null,
                 Status = "Pending" // All new auctions start as Pending for admin review
@@ -100,7 +121,7 @@ namespace AuctionHouse.Api.Services
                     Status = a.Status,
                     CategoryName = a.Category != null ? a.Category.Name : "Uncategorized",
                     CategoryId = a.CategoryId ?? 0,
-                    PrimaryImageUrl = a.Images.OrderBy(i => i.Id).FirstOrDefault() != null ? a.Images.OrderBy(i => i.Id).FirstOrDefault()!.Url : null,
+                    PrimaryImageUrl = a.Images.OrderBy(i => i.IsPrimary ? 0 : 1).ThenBy(i => i.DisplayOrder).FirstOrDefault() != null ? a.Images.OrderBy(i => i.IsPrimary ? 0 : 1).ThenBy(i => i.DisplayOrder).FirstOrDefault()!.Url : null,
                     BidCount = a.Bids.Count
                 })
                 .ToListAsync();
@@ -126,7 +147,7 @@ namespace AuctionHouse.Api.Services
                     Status = a.Status,
                     CategoryName = a.Category != null ? a.Category.Name : "Uncategorized",
                     CategoryId = a.CategoryId ?? 0,
-                    ImageUrls = a.Images.OrderBy(i => i.Id).Select(i => i.Url).ToList(),
+                    ImageUrls = a.Images.OrderBy(i => i.IsPrimary ? 0 : 1).ThenBy(i => i.DisplayOrder).Select(i => i.Url).ToList(),
                     BidCount = a.Bids.Count
                 })
                 .FirstOrDefaultAsync();
@@ -217,7 +238,7 @@ namespace AuctionHouse.Api.Services
                     Status = a.Status,
                     CategoryName = a.Category != null ? a.Category.Name : "Uncategorized",
                     CategoryId = a.CategoryId ?? 0,
-                    PrimaryImageUrl = a.Images.OrderBy(i => i.Id).FirstOrDefault() != null ? a.Images.OrderBy(i => i.Id).FirstOrDefault()!.Url : null,
+                    PrimaryImageUrl = a.Images.OrderBy(i => i.IsPrimary ? 0 : 1).ThenBy(i => i.DisplayOrder).FirstOrDefault() != null ? a.Images.OrderBy(i => i.IsPrimary ? 0 : 1).ThenBy(i => i.DisplayOrder).FirstOrDefault()!.Url : null,
                     BidCount = a.Bids.Count
                 })
                 .OrderByDescending(a => a.StartTime)

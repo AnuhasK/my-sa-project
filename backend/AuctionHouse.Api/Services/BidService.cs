@@ -27,19 +27,34 @@ namespace AuctionHouse.Api.Services
                 .Include(a => a.Bids.OrderByDescending(b => b.Amount).Take(1))
                 .FirstOrDefaultAsync(a => a.Id == auctionId);
             
-            if (auction == null) throw new ApplicationException("Auction not found");
+            if (auction == null) 
+                throw new ApplicationException("Auction not found");
+
+            // Check if auction is open for bidding
             var now = DateTime.UtcNow;
-            if (auction.Status != "Open" || now < auction.StartTime || now > auction.EndTime)
-                throw new ApplicationException("Auction not open for bidding");
+            if (auction.Status != "Open" && auction.Status != "Active")
+                throw new ApplicationException("Auction is not open for bidding");
+            
+            if (now < auction.StartTime)
+                throw new ApplicationException("Auction has not started yet");
+            
+            if (now > auction.EndTime)
+                throw new ApplicationException("Auction has ended");
+
+            // Prevent seller from bidding on their own auction
+            if (auction.SellerId == bidderId)
+                throw new ApplicationException("You cannot bid on your own auction");
 
             // Get previous highest bidder (if exists)
             var previousHighestBid = auction.Bids.FirstOrDefault();
             int? previousBidderId = previousHighestBid?.BidderId;
 
-            // minimum increment (optional config or fixed)
+            // Bid must be greater than current price (with minimum increment)
             var minIncrement = 1m;
-            if (amount <= auction.CurrentPrice + minIncrement)
-                throw new ApplicationException($"Bid must be greater than current price + {minIncrement}");
+            var minBidAmount = auction.CurrentPrice + minIncrement;
+            
+            if (amount < minBidAmount)
+                throw new ApplicationException($"Bid must be at least ${minBidAmount:F2} (current price + ${minIncrement:F2})");
 
             var bid = new Bid
             {
@@ -125,11 +140,21 @@ namespace AuctionHouse.Api.Services
                 AuctionId = b.AuctionId,
                 AuctionTitle = b.Auction.Title,
                 BidderId = b.BidderId,
-                BidderName = b.Bidder.Username,
+                BidderName = MaskUsername(b.Bidder.Username), // Mask for privacy
                 Amount = b.Amount,
                 Timestamp = b.Timestamp,
                 IsWinning = b.Id == winningBidId
             });
+        }
+
+        // Helper method to mask usernames for privacy
+        private string MaskUsername(string username)
+        {
+            if (string.IsNullOrEmpty(username) || username.Length <= 2)
+                return "u***";
+            
+            // Show first and last character, mask the rest
+            return $"{username[0]}***{username[username.Length - 1]}";
         }
 
         public async Task<IEnumerable<BidDto>> GetUserBidsAsync(int userId)

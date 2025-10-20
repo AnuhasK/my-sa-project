@@ -86,25 +86,71 @@ export function CreateAuctionForm({ onAuctionCreated, onCancel }: CreateAuctionF
         throw new Error('Please fill in all required fields including category');
       }
 
+      // Validate field lengths (match backend validation)
+      if (formData.title.length < 5 || formData.title.length > 100) {
+        throw new Error('Title must be between 5 and 100 characters');
+      }
+
+      if (formData.description.length < 20 || formData.description.length > 1000) {
+        throw new Error('Description must be between 20 and 1000 characters');
+      }
+
+      // Validate start price
+      const startPrice = parseFloat(formData.startPrice);
+      if (startPrice <= 0) {
+        throw new Error('Start price must be greater than 0');
+      }
+
+      // Validate times
+      const now = new Date();
+      const startTime = new Date(formData.startTime);
+      const endTime = new Date(formData.endTime);
+
+      if (startTime <= now) {
+        throw new Error('Start time must be in the future');
+      }
+
+      if (endTime <= startTime) {
+        throw new Error('End time must be after start time');
+      }
+
+      const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+      if (durationHours < 1) {
+        throw new Error('Auction must run for at least 1 hour');
+      }
+
       // Create auction data
       const auctionData = {
         title: formData.title,
         description: formData.description,
         categoryId: parseInt(formData.categoryId),
-        startPrice: parseFloat(formData.startPrice),
-        startTime: new Date(formData.startTime).toISOString(),
-        endTime: new Date(formData.endTime).toISOString()
+        startPrice: startPrice,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString()
       };
 
       // Create the auction
       const auction = await api.createAuction(auctionData, token);
       
-      // TODO: Add images to the auction (you might need to create an endpoint for this)
-      // For now, we've uploaded the images but need to associate them with the auction
-      
       console.log('Auction created:', auction);
-      console.log('Images uploaded:', images);
       
+      // Associate uploaded images with the auction
+      if (images.length > 0) {
+        console.log(`Associating ${images.length} images with auction...`);
+        for (let i = 0; i < images.length; i++) {
+          const imageUrl = images[i];
+          try {
+            await api.addAuctionImageByUrl(auction.id, imageUrl, token);
+            console.log(`Image ${i + 1} associated successfully`);
+          } catch (imgError) {
+            console.error(`Failed to associate image ${i + 1}:`, imgError);
+            // Continue with other images even if one fails
+          }
+        }
+        console.log('All images associated');
+      }
+      
+      alert('Auction created successfully!');
       onAuctionCreated?.();
       
       // Reset form
@@ -143,28 +189,38 @@ export function CreateAuctionForm({ onAuctionCreated, onCancel }: CreateAuctionF
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Title *
+                Title * <span className="text-xs text-gray-500 font-normal">(5-100 characters)</span>
               </label>
               <Input
                 type="text"
                 value={formData.title}
                 onChange={(e) => handleInputChange('title', e.target.value)}
                 placeholder="Enter auction title"
+                minLength={5}
+                maxLength={100}
                 required
               />
+              <p className="text-xs text-gray-500 mt-1">
+                {formData.title.length}/100 characters
+              </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description *
+                Description * <span className="text-xs text-gray-500 font-normal">(20-1000 characters)</span>
               </label>
               <Textarea
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
-                placeholder="Describe the item in detail"
+                placeholder="Describe the item in detail (minimum 20 characters)"
                 rows={4}
+                minLength={20}
+                maxLength={1000}
                 required
               />
+              <p className={`text-xs mt-1 ${formData.description.length < 20 ? 'text-red-600' : 'text-gray-500'}`}>
+                {formData.description.length}/1000 characters {formData.description.length < 20 && `(${20 - formData.description.length} more needed)`}
+              </p>
             </div>
 
             <div>

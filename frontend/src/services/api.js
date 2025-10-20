@@ -244,6 +244,15 @@ class ApiService {
     return this.handleResponse(response);
   }
 
+  async addAuctionImageByUrl(auctionId, imageUrl, token) {
+    const response = await fetch(`${API_BASE_URL}/auctions/${auctionId}/images/url`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify({ url: imageUrl }),
+    });
+    return this.handleResponse(response);
+  }
+
   async deleteAuctionImage(auctionId, imageId, token) {
     const response = await fetch(`${API_BASE_URL}/auctions/${auctionId}/images/${imageId}`, {
       method: 'DELETE',

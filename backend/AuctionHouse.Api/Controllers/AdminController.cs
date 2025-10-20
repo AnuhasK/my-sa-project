@@ -243,5 +243,29 @@ namespace AuctionHouse.Api.Controllers
                 return StatusCode(500, new { message = "Error removing auction" });
             }
         }
+
+        /// <summary>
+        /// Update auction status
+        /// </summary>
+        [HttpPut("auctions/{id}/status")]
+        public async Task<IActionResult> UpdateAuctionStatus(int id, [FromBody] UpdateAuctionStatusDto dto)
+        {
+            try
+            {
+                var success = await _adminService.UpdateAuctionStatusAsync(id, dto.Status);
+                
+                if (!success)
+                {
+                    return NotFound(new { message = "Auction not found" });
+                }
+
+                return Ok(new { message = $"Auction status updated to {dto.Status}" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error updating auction status {id}");
+                return StatusCode(500, new { message = "Error updating auction status" });
+            }
+        }
     }
 }

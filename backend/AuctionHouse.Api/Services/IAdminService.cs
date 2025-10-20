@@ -14,5 +14,6 @@ namespace AuctionHouse.Api.Services
         Task<bool> UpdateUserRoleAsync(int userId, string role);
         Task<IEnumerable<AuctionListDto>> GetFlaggedAuctionsAsync();
         Task<bool> RemoveAuctionAsync(int auctionId, string reason);
+        Task<bool> UpdateAuctionStatusAsync(int auctionId, string status);
     }
 }

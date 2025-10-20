@@ -59,4 +59,9 @@ namespace AuctionHouse.Api.DTOs
     {
         public string Role { get; set; } = null!; // "User" or "Admin"
     }
+
+    public class UpdateAuctionStatusDto
+    {
+        public string Status { get; set; } = null!; // "Open", "Pending", "Closed", "Sold", "Suspended"
+    }
 }

@@ -26,7 +26,7 @@ namespace AuctionHouse.Api.Services
                 EndTime = dto.EndTime.ToUniversalTime(),
                 SellerId = sellerId,
                 CategoryId = dto.CategoryId > 0 ? dto.CategoryId : null,
-                Status = dto.StartTime <= DateTime.UtcNow ? "Open" : "Scheduled"
+                Status = "Pending" // All new auctions start as Pending for admin review
             };
             _db.Auctions.Add(auction);
             await _db.SaveChangesAsync();

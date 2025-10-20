@@ -298,5 +298,25 @@ namespace AuctionHouse.Api.Services
 
             return true;
         }
+
+        public async Task<bool> UpdateAuctionStatusAsync(int auctionId, string status)
+        {
+            var auction = await _db.Auctions.FindAsync(auctionId);
+            if (auction == null) return false;
+
+            // Validate status
+            var validStatuses = new[] { "Open", "Pending", "Closed", "Sold", "Suspended" };
+            if (!validStatuses.Contains(status))
+            {
+                return false;
+            }
+
+            auction.Status = status;
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation($"Auction {auctionId} status changed to {status} by admin");
+
+            return true;
+        }
     }
 }

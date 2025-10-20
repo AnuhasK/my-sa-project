@@ -6,5 +6,7 @@ namespace AuctionHouse.Api.Services
     {
         Task<AuthResponseDto> RegisterAsync(AuthRegisterDto dto);
         Task<AuthResponseDto> LoginAsync(AuthLoginDto dto);
+        Task<UserProfileDto?> GetCurrentUserAsync(int userId);
+        Task LogoutAsync(string token, int userId);
     }
 }

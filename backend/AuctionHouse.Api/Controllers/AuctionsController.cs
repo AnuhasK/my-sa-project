@@ -14,7 +14,17 @@ namespace AuctionHouse.Api.Controllers
         public AuctionsController(IAuctionService svc) { _svc = svc; }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll() => Ok(await _svc.GetAllAsync());
+        public async Task<IActionResult> GetAll(
+            [FromQuery] string? search,
+            [FromQuery] int? categoryId,
+            [FromQuery] string? status,
+            [FromQuery] decimal? minPrice,
+            [FromQuery] decimal? maxPrice,
+            [FromQuery] string? sortBy)
+        {
+            var auctions = await _svc.GetAllAsync(search, categoryId, status, minPrice, maxPrice, sortBy);
+            return Ok(auctions);
+        }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id) => Ok(await _svc.GetByIdAsync(id));
@@ -23,7 +33,12 @@ namespace AuctionHouse.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(AuctionCreateDto dto)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            {
+                return Unauthorized(new { message = "Invalid authentication token" });
+            }
+            
             var auction = await _svc.CreateAsync(userId, dto);
             return CreatedAtAction(nameof(Get), new { id = auction.Id }, auction);
         }
@@ -34,6 +49,77 @@ namespace AuctionHouse.Api.Controllers
         {
             await _svc.CloseAuctionAsync(id);
             return NoContent();
+        }
+
+        [Authorize]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, AuctionUpdateDto dto)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+                {
+                    return Unauthorized(new { message = "Invalid authentication token" });
+                }
+
+                var isAdmin = User.IsInRole("Admin");
+                var updatedAuction = await _svc.UpdateAsync(id, dto, userId, isAdmin);
+
+                if (updatedAuction == null)
+                    return NotFound(new { message = "Auction not found" });
+
+                return Ok(updatedAuction);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (ApplicationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [Authorize]
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+                {
+                    return Unauthorized(new { message = "Invalid authentication token" });
+                }
+
+                var isAdmin = User.IsInRole("Admin");
+                var result = await _svc.DeleteAsync(id, userId, isAdmin);
+
+                return NoContent();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (ApplicationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [Authorize]
+        [HttpGet("my-auctions")]
+        public async Task<IActionResult> GetMyAuctions()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            {
+                return Unauthorized(new { message = "Invalid authentication token" });
+            }
+
+            var auctions = await _svc.GetUserAuctionsAsync(userId);
+            return Ok(auctions);
         }
     }
 }

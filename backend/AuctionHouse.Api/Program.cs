@@ -1,5 +1,6 @@
 using AuctionHouse.Api.Data;
 using AuctionHouse.Api.Hubs;
+using AuctionHouse.Api.Middleware;
 using AuctionHouse.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -7,6 +8,20 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Validate critical configuration at startup
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString))
+    throw new InvalidOperationException("ConnectionStrings:DefaultConnection is missing from configuration.");
+
+var jwtKey = builder.Configuration["Jwt:Key"];
+if (string.IsNullOrWhiteSpace(jwtKey) || jwtKey.Length < 16)
+    throw new InvalidOperationException("Jwt:Key must be set to a strong secret (minimum 16 characters). Use user secrets or environment variables in production.");
+
+var jwtIssuer = builder.Configuration["Jwt:Issuer"];
+var jwtAudience = builder.Configuration["Jwt:Audience"];
+if (string.IsNullOrWhiteSpace(jwtIssuer) || string.IsNullOrWhiteSpace(jwtAudience))
+    throw new InvalidOperationException("Jwt:Issuer and Jwt:Audience must be configured.");
 
 // Add services
 builder.Services.AddControllers();
@@ -21,6 +36,15 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuctionService, AuctionService>();
 builder.Services.AddScoped<IBidService, BidService>();
+builder.Services.AddScoped<IImageService, ImageService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IWatchlistService, WatchlistService>();
+builder.Services.AddScoped<ITransactionService, TransactionService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
+
+// Background Services
+builder.Services.AddHostedService<AuctionClosingService>();
 
 // SignalR
 builder.Services.AddSignalR();
@@ -74,12 +98,26 @@ builder.Services.AddCors(opts =>
 
 var app = builder.Build();
 
-// migrate & seed DB on startup
+// Migrate & seed DB on startup with error handling
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.Migrate();
-    await SeedData.EnsureSeedData(db); // helper class below (create it)
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        logger.LogInformation("Starting database migration...");
+        await db.Database.MigrateAsync();
+        logger.LogInformation("Database migration completed successfully.");
+        
+        logger.LogInformation("Starting database seeding...");
+        await SeedData.EnsureSeedData(db);
+        logger.LogInformation("Database seeding completed successfully.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "An error occurred while migrating or seeding the database. Application will continue but database may not be initialized.");
+        // Application continues to allow manual database setup if needed
+    }
 }
 
 if (app.Environment.IsDevelopment())
@@ -88,8 +126,17 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Proper middleware ordering for security
+app.UseHttpsRedirection();
+app.UseRouting();
+
 app.UseCors("AllowReactApp");
+
+// Enable static files for serving uploaded images
+app.UseStaticFiles();
+
 app.UseAuthentication();
+app.UseTokenRevocation(); // Check for revoked tokens after authentication
 app.UseAuthorization();
 
 app.MapControllers();

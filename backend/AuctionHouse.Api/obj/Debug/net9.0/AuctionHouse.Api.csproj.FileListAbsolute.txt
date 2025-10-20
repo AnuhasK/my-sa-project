@@ -514,3 +514,4 @@ C:\Users\Anuhas\Documents\Auction Website Project\backend\AuctionHouse.Api\obj\D
 C:\Users\Anuhas\Documents\Auction Website Project\backend\AuctionHouse.Api\obj\Debug\net9.0\AuctionHouse.Api.pdb
 C:\Users\Anuhas\Documents\Auction Website Project\backend\AuctionHouse.Api\obj\Debug\net9.0\AuctionHouse.Api.genruntimeconfig.cache
 C:\Users\Anuhas\Documents\Auction Website Project\backend\AuctionHouse.Api\obj\Debug\net9.0\ref\AuctionHouse.Api.dll
+C:\Users\Anuhas\Documents\Auction Website Project\backend\AuctionHouse.Api\bin\Debug\net9.0\AuctionHouse.Api.staticwebassets.runtime.json

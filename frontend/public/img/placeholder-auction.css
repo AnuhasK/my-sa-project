@@ -1,0 +1,18 @@
+/* Placeholder styles for auction images */
+.auction-placeholder {
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  font-size: 14px;
+  text-align: center;
+  padding: 20px;
+}
+
+.auction-placeholder::before {
+  content: "📸";
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 8px;
+}

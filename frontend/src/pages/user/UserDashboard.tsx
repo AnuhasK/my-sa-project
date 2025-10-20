@@ -1,11 +1,13 @@
-import { useState } from 'react';
-import { User, Heart, Gavel, Bell, Settings, Eye, Clock, DollarSign, Trophy, ArrowRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { User, Heart, Gavel, Bell, Settings, Eye, Clock, DollarSign, Trophy, ArrowRight, Receipt } from 'lucide-react';
 import { Button } from '../../components/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/tabs';
 import { Badge } from '../../components/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/avatar';
 import { AuctionCard } from './AuctionCard';
+import { api } from '../../services/api';
+import { TransactionsList } from '../../components/TransactionsList';
 
 interface UserDashboardProps {
   setCurrentPage: (page: string) => void;
@@ -14,6 +16,63 @@ interface UserDashboardProps {
 
 export function UserDashboard({ setCurrentPage, setSelectedAuction }: UserDashboardProps) {
   const [activeTab, setActiveTab] = useState('overview');
+  const [watchedAuctions, setWatchedAuctions] = useState<any[]>([]);
+  const [loadingWatchlist, setLoadingWatchlist] = useState(false);
+
+  // Fetch watchlist when component mounts or when tab changes to watching
+  useEffect(() => {
+    if (activeTab === 'watching' || activeTab === 'overview') {
+      fetchWatchlist();
+    }
+  }, [activeTab]);
+
+  const fetchWatchlist = async () => {
+    try {
+      setLoadingWatchlist(true);
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        console.log('No auth token found');
+        return;
+      }
+
+      const watchlistData = await api.getWatchlist(token);
+      console.log('Fetched watchlist:', watchlistData);
+
+      // Transform backend data to match frontend expectations
+      const transformedData = watchlistData.map((item: any) => ({
+        id: item.auctionId.toString(),
+        title: item.title,
+        currentBid: item.currentBid,
+        timeLeft: formatTimeLeft(new Date(item.endDate)),
+        imageUrl: item.imageUrl || 'https://images.unsplash.com/photo-1695528589305-5103f5c52306?w=400',
+        views: 0, // Not available in backend DTO currently
+        category: item.categoryName || 'General',
+        isEnding: item.isEnding
+      }));
+
+      setWatchedAuctions(transformedData);
+    } catch (error) {
+      console.error('Error fetching watchlist:', error);
+    } finally {
+      setLoadingWatchlist(false);
+    }
+  };
+
+  // Helper function to format time left
+  const formatTimeLeft = (endDate: Date) => {
+    const now = new Date();
+    const diff = endDate.getTime() - now.getTime();
+    
+    if (diff <= 0) return 'Ended';
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
+  };
 
   // Mock user data
   const userData = {
@@ -25,32 +84,9 @@ export function UserDashboard({ setCurrentPage, setSelectedAuction }: UserDashbo
       totalBids: 47,
       wonAuctions: 12,
       totalSpent: 15420,
-      savedItems: 23
+      savedItems: watchedAuctions.length // Use real watchlist count
     }
   };
-
-  const watchedAuctions = [
-    {
-      id: '1',
-      title: 'Vintage Omega Speedmaster Professional',
-      currentBid: 2850,
-      timeLeft: '2d 14h 32m',
-      imageUrl: 'https://images.unsplash.com/photo-1695528589305-5103f5c52306?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aW50YWdlJTIwd2F0Y2glMjBsdXh1cnklMjBhdWN0aW9ufGVufDF8fHx8MTc1NzUwMDE3Nnww&ixlib=rb-4.1.0&q=80&w=1080',
-      views: 342,
-      category: 'Watches',
-      isEnding: false
-    },
-    {
-      id: '2',
-      title: 'Mid-Century Modern Lounge Chair',
-      currentBid: 1250,
-      timeLeft: '5h 42m',
-      imageUrl: 'https://images.unsplash.com/photo-1682248241811-c60fac657a2e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhbnRpcXVlJTIwZnVybml0dXJlJTIwY2hhaXJ8ZW58MXx8fHwxNzU3Mzk3NzEwfDA&ixlib=rb-4.1.0&q=80&w=1080',
-      views: 189,
-      category: 'Furniture',
-      isEnding: true
-    }
-  ];
 
   const activeBids = [
     {
@@ -203,11 +239,12 @@ export function UserDashboard({ setCurrentPage, setSelectedAuction }: UserDashbo
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-white">
+          <TabsList className="grid w-full grid-cols-6 bg-white">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="bids">My Bids</TabsTrigger>
             <TabsTrigger value="watching">Watching</TabsTrigger>
             <TabsTrigger value="won">Won Items</TabsTrigger>
+            <TabsTrigger value="transactions">Transactions</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
 
@@ -367,15 +404,30 @@ export function UserDashboard({ setCurrentPage, setSelectedAuction }: UserDashbo
 
           {/* Watching Tab */}
           <TabsContent value="watching" className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {watchedAuctions.map((auction) => (
-                <AuctionCard
-                  key={auction.id}
-                  {...auction}
-                  onClick={() => handleAuctionClick(auction.id)}
-                />
-              ))}
-            </div>
+            {loadingWatchlist ? (
+              <div className="text-center py-12">
+                <p className="text-gray-600">Loading watchlist...</p>
+              </div>
+            ) : watchedAuctions.length === 0 ? (
+              <Card>
+                <CardContent className="text-center py-12">
+                  <Heart className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No items in watchlist</h3>
+                  <p className="text-gray-600 mb-4">Start watching auctions to see them here</p>
+                  <Button onClick={() => setCurrentPage('auctions')}>Browse Auctions</Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {watchedAuctions.map((auction) => (
+                  <AuctionCard
+                    key={auction.id}
+                    {...auction}
+                    onClick={() => handleAuctionClick(auction.id)}
+                  />
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           {/* Won Items Tab */}
@@ -439,6 +491,35 @@ export function UserDashboard({ setCurrentPage, setSelectedAuction }: UserDashbo
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Transactions Tab */}
+          <TabsContent value="transactions" className="space-y-6">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Receipt className="w-5 h-5" />
+                    My Purchases
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TransactionsList type="buyer" />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="w-5 h-5" />
+                    My Sales
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TransactionsList type="seller" />
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

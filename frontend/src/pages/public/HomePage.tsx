@@ -2,64 +2,133 @@ import { Search, Gavel, Shield, Clock, TrendingUp, ArrowRight } from 'lucide-rea
 import { Button } from '../../components/button';
 import { Input } from '../../components/input';
 import { AuctionCard } from '../user/AuctionCard';
+import { useEffect, useState } from 'react';
+import api from '../../services/api';
 
 interface HomePageProps {
   setCurrentPage: (page: string) => void;
   setSelectedAuction: (id: string) => void;
 }
 
-export function HomePage({ setCurrentPage, setSelectedAuction }: HomePageProps) {
-  const featuredAuctions = [
-    {
-      id: '1',
-      title: 'Vintage Omega Speedmaster Professional',
-      currentBid: 2850,
-      timeLeft: '2d 14h 32m',
-      imageUrl: 'img/products/watch.jpg',
-      views: 342,
-      category: 'Watches',
-      isEnding: false
-    },
-    {
-      id: '2',
-      title: 'Mid-Century Modern Lounge Chair',
-      currentBid: 1250,
-      timeLeft: '5h 42m',
-      imageUrl: 'img/products/chair.jpg',
-      views: 189,
-      category: 'Furniture',
-      isEnding: true
-    },
-    {
-      id: '3',
-      title: 'Leica M3 35mm Film Camera',
-      currentBid: 890,
-      timeLeft: '1d 8h 15m',
-      imageUrl: 'img/products/camera.jpg',
-      views: 256,
-      category: 'Electronics',
-      isEnding: false
-    },
-    {
-      id: '4',
-      title: 'Original Oil Painting - Abstract Landscape',
-      currentBid: 1680,
-      timeLeft: '3d 2h 8m',
-      imageUrl: 'img/products/painting.jpg',
-      views: 423,
-      category: 'Art',
-      isEnding: false
-    }
-  ];
+interface Auction {
+  id: number;
+  title: string;
+  description: string;
+  currentPrice: number;
+  startTime: string;
+  endTime: string;
+  status: string;
+  categoryName: string;
+  categoryId: number;
+  primaryImageUrl?: string;
+  bidCount: number;
+}
 
-  const categories = [
-    { name: 'Art & Collectibles', count: 1247 },
-    { name: 'Jewelry & Watches', count: 892 },
-    { name: 'Antiques', count: 634 },
-    { name: 'Electronics', count: 456 },
-    { name: 'Furniture', count: 328 },
-    { name: 'Books & Manuscripts', count: 234 }
-  ];
+interface Category {
+  id: number;
+  name: string;
+  description: string;
+  count?: number;
+}
+
+export function HomePage({ setCurrentPage, setSelectedAuction }: HomePageProps) {
+  const [auctions, setAuctions] = useState<Auction[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        console.log('Fetching data from:', import.meta.env.VITE_API_URL || 'http://localhost:5000/api');
+        
+        // Fetch auctions and categories in parallel
+        const [auctionData, categoryData] = await Promise.all([
+          api.getAuctions({ status: 'Open', sortBy: 'ending-soon', limit: 6 }), // Get 6 open auctions ending soon
+          api.getCategories()
+        ]);
+        
+        console.log('Received auction data:', auctionData);
+        console.log('Received category data:', categoryData);
+        
+        setAuctions(auctionData);
+        setCategories(categoryData);
+        setError(null);
+      } catch (err) {
+        console.error('Failed to fetch data:', err);
+        setError('Failed to load data. Please try again later.');
+        // Set fallback data if API fails
+        setAuctions([]);
+        setCategories([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const formatTimeLeft = (endTime: string) => {
+    const now = new Date();
+    const end = new Date(endTime);
+    const diff = end.getTime() - now.getTime();
+    
+    if (diff <= 0) return 'Ended';
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
+  };
+
+  const formatAuctionForCard = (auction: Auction) => {
+    const timeLeft = formatTimeLeft(auction.endTime);
+    const isEnding = timeLeft !== 'Ended' && (
+      timeLeft.includes('h') && !timeLeft.includes('d') && 
+      parseInt(timeLeft.split('h')[0]) < 6
+    );
+
+    // Use the category from backend API
+    let category = auction.categoryName || 'General';
+    let imageUrl = auction.primaryImageUrl || '/img/placeholder-auction.jpg';
+    
+    // If no backend image, use smart category detection based on the backend category or title
+    if (!auction.primaryImageUrl) {
+      const title = auction.title.toLowerCase();
+      const categoryName = auction.categoryName?.toLowerCase() || '';
+      
+      if (categoryName.includes('musical') || title.includes('guitar') || title.includes('music')) {
+        imageUrl = 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop';
+      } else if (categoryName.includes('electronics') || title.includes('macbook') || title.includes('computer') || title.includes('tech')) {
+        imageUrl = 'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=400&h=300&fit=crop';
+      } else if (categoryName.includes('fashion') || categoryName.includes('accessories') || title.includes('rolex') || title.includes('watch')) {
+        imageUrl = 'https://images.unsplash.com/photo-1547996160-81dfa63595aa?w=400&h=300&fit=crop';
+      } else if (categoryName.includes('home') || categoryName.includes('garden') || title.includes('rug') || title.includes('carpet')) {
+        imageUrl = 'https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=400&h=300&fit=crop';
+      } else if (categoryName.includes('gaming') || title.includes('playstation') || title.includes('gaming')) {
+        imageUrl = 'https://images.unsplash.com/photo-1607853202273-797f1c22a38e?w=400&h=300&fit=crop';
+      } else if (categoryName.includes('photography') || title.includes('camera') || title.includes('photography')) {
+        imageUrl = 'https://images.unsplash.com/photo-1606983340126-99ab4feaa64a?w=400&h=300&fit=crop';
+      }
+    }
+
+    return {
+      id: auction.id.toString(),
+      title: auction.title,
+      currentBid: auction.currentPrice,
+      timeLeft,
+      imageUrl,
+      views: Math.floor(Math.random() * 500) + 50, // Placeholder until we add view tracking
+      category,
+      isEnding
+    };
+  };
+
+  // Categories will be fetched from API
 
   const handleAuctionClick = (id: string) => {
     setSelectedAuction(id);
@@ -165,15 +234,53 @@ export function HomePage({ setCurrentPage, setSelectedAuction }: HomePageProps) 
             </Button>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredAuctions.map((auction) => (
-              <AuctionCard
-                key={auction.id}
-                {...auction}
-                onClick={() => handleAuctionClick(auction.id)}
-              />
-            ))}
-          </div>
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, index) => (
+                <div key={index} className="bg-white border border-gray-200 rounded-lg overflow-hidden animate-pulse">
+                  <div className="w-full h-48 bg-gray-200"></div>
+                  <div className="p-4 space-y-3">
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                    <div className="h-8 bg-gray-200 rounded"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <p className="text-red-600 mb-4">{error}</p>
+              <Button 
+                onClick={() => window.location.reload()}
+                variant="outline"
+              >
+                Retry
+              </Button>
+            </div>
+          ) : auctions.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600 mb-4">No auctions available at the moment.</p>
+              <Button 
+                onClick={() => setCurrentPage('auctions')}
+                variant="outline"
+              >
+                Check Back Later
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {auctions.slice(0, 4).map((auction) => {
+                const cardData = formatAuctionForCard(auction);
+                return (
+                  <AuctionCard
+                    key={auction.id}
+                    {...cardData}
+                    onClick={() => handleAuctionClick(cardData.id)}
+                  />
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 
@@ -188,18 +295,23 @@ export function HomePage({ setCurrentPage, setSelectedAuction }: HomePageProps) 
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {categories.map((category) => (
-              <button
-                key={category.name}
-                className="p-6 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-center group"
-                onClick={() => setCurrentPage('auctions')}
-              >
-                <h3 className="font-medium text-gray-900 mb-2 group-hover:text-black">
-                  {category.name}
-                </h3>
-                <p className="text-sm text-gray-600">{category.count} items</p>
-              </button>
-            ))}
+            {categories.slice(0, 6).map((category) => {
+              // Count auctions in this category
+              const auctionCount = auctions.filter(auction => auction.categoryId === category.id).length;
+              
+              return (
+                <button
+                  key={category.id}
+                  className="p-6 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-center group"
+                  onClick={() => setCurrentPage('auctions')}
+                >
+                  <h3 className="font-medium text-gray-900 mb-2 group-hover:text-black">
+                    {category.name}
+                  </h3>
+                  <p className="text-sm text-gray-600">{auctionCount} items</p>
+                </button>
+              );
+            })}
           </div>
         </div>
       </section>

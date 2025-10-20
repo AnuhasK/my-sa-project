@@ -94,15 +94,23 @@ class ApiService {
   }
 
   // Auction endpoints
-  async getAuctions(page = 1, limit = 10, category = null, search = null) {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-      ...(category && { category }),
-      ...(search && { search }),
-    });
+  async getAuctions(filters = {}) {
+    const params = new URLSearchParams();
+    
+    // Add filter parameters if provided
+    if (filters.search) params.append('search', filters.search);
+    if (filters.categoryId) params.append('categoryId', filters.categoryId);
+    if (filters.status) params.append('status', filters.status);
+    if (filters.minPrice) params.append('minPrice', filters.minPrice);
+    if (filters.maxPrice) params.append('maxPrice', filters.maxPrice);
+    if (filters.sortBy) params.append('sortBy', filters.sortBy);
+    
+    // Keep backward compatibility with pagination
+    if (filters.page) params.append('page', filters.page);
+    if (filters.limit) params.append('limit', filters.limit);
 
-    const response = await fetch(`${API_BASE_URL}/auctions?${params}`);
+    const url = params.toString() ? `${API_BASE_URL}/auctions?${params}` : `${API_BASE_URL}/auctions`;
+    const response = await fetch(url);
     return this.handleResponse(response);
   }
 
@@ -193,8 +201,16 @@ class ApiService {
   }
 
   // Transaction endpoints
-  async getTransactions(token) {
-    const response = await fetch(`${API_BASE_URL}/transactions`, {
+  async getBuyerTransactions(token) {
+    const response = await fetch(`${API_BASE_URL}/transactions/buyer`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  async getSellerTransactions(token) {
+    const response = await fetch(`${API_BASE_URL}/transactions/seller`, {
       method: 'GET',
       headers: this.getAuthHeaders(token),
     });
@@ -205,6 +221,24 @@ class ApiService {
     const response = await fetch(`${API_BASE_URL}/transactions/${id}`, {
       method: 'GET',
       headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  async createTransaction(auctionId, buyerId, amount, token) {
+    const response = await fetch(`${API_BASE_URL}/transactions`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify({ auctionId, buyerId, amount }),
+    });
+    return this.handleResponse(response);
+  }
+
+  async updatePaymentStatus(transactionId, paymentStatus, token) {
+    const response = await fetch(`${API_BASE_URL}/transactions/${transactionId}/payment-status`, {
+      method: 'PATCH',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify({ paymentStatus }),
     });
     return this.handleResponse(response);
   }
@@ -230,6 +264,95 @@ class ApiService {
       headers: this.getAuthHeaders(token),
     });
     return this.handleResponse(response);
+  }
+
+  // Image upload endpoints
+  async uploadImage(file, token) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE_URL}/images/upload`, {
+      method: 'POST',
+      headers: {
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+        // Don't set Content-Type, let browser set it for FormData
+      },
+      body: formData,
+    });
+    return this.handleResponse(response);
+  }
+
+  async deleteImage(fileName, token) {
+    const response = await fetch(`${API_BASE_URL}/images/${fileName}`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  // Category endpoints
+  async getCategories() {
+    const response = await fetch(`${API_BASE_URL}/categories`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(),
+    });
+    return this.handleResponse(response);
+  }
+
+  async getCategory(id) {
+    const response = await fetch(`${API_BASE_URL}/categories/${id}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(),
+    });
+    return this.handleResponse(response);
+  }
+
+  // Watchlist endpoints
+  async addToWatchlist(auctionId, token) {
+    const response = await fetch(`${API_BASE_URL}/watchlist/${auctionId}`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  async removeFromWatchlist(auctionId, token) {
+    const response = await fetch(`${API_BASE_URL}/watchlist/${auctionId}`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  async getWatchlist(token) {
+    const response = await fetch(`${API_BASE_URL}/watchlist`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  async checkWatchlist(auctionId, token) {
+    const response = await fetch(`${API_BASE_URL}/watchlist/check/${auctionId}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  async getWatchersCount(auctionId) {
+    const response = await fetch(`${API_BASE_URL}/watchlist/watchers/${auctionId}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(),
+    });
+    return this.handleResponse(response);
+  }
+
+  // Helper method to get image URL
+  getImageUrl(imagePath) {
+    if (!imagePath) return null;
+    if (imagePath.startsWith('http')) return imagePath;
+    return `${API_BASE_URL.replace('/api', '')}${imagePath}`;
   }
 }
 

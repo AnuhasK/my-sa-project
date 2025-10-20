@@ -12,6 +12,10 @@ namespace AuctionHouse.Api.Data
         public DbSet<Bid> Bids { get; set; }
         public DbSet<AuctionImage> AuctionImages { get; set; }
         public DbSet<Transaction> Transactions { get; set; }
+        public DbSet<Category> Categories { get; set; }
+        public DbSet<Watchlist> Watchlists { get; set; }
+        public DbSet<RevokedToken> RevokedTokens { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -41,6 +45,18 @@ namespace AuctionHouse.Api.Data
         .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<Auction>()
+        .HasMany(a => a.Images)
+        .WithOne(i => i.Auction)
+        .HasForeignKey(i => i.AuctionId)
+        .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Auction>()
+        .HasOne(a => a.Category)
+        .WithMany(c => c.Auctions)
+        .HasForeignKey(a => a.CategoryId)
+        .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Auction>()
                 .Property(a => a.CurrentPrice)
                 .HasPrecision(18, 2); // 18 digits, 2 decimal places
 
@@ -55,6 +71,45 @@ namespace AuctionHouse.Api.Data
             modelBuilder.Entity<Transaction>()
                 .Property(t => t.Amount)
                 .HasPrecision(18, 2);
+
+            // Watchlist configuration - ensure unique constraint (one user can't watch same auction twice)
+            modelBuilder.Entity<Watchlist>()
+                .HasIndex(w => new { w.UserId, w.AuctionId })
+                .IsUnique();
+
+            // Prevent cascade delete conflicts - when user is deleted, remove watchlist entries
+            modelBuilder.Entity<Watchlist>()
+                .HasOne(w => w.User)
+                .WithMany()
+                .HasForeignKey(w => w.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // When auction is deleted, remove watchlist entries (no action to avoid conflict)
+            modelBuilder.Entity<Watchlist>()
+                .HasOne(w => w.Auction)
+                .WithMany()
+                .HasForeignKey(w => w.AuctionId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // Notification configuration
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.User)
+                .WithMany()
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Notification>()
+                .HasIndex(n => n.UserId);
+
+            modelBuilder.Entity<Notification>()
+                .HasIndex(n => n.IsRead);
+
+            modelBuilder.Entity<Notification>()
+                .HasIndex(n => n.CreatedAt);
+
+            modelBuilder.Entity<Notification>()
+                .Property(n => n.Type)
+                .HasConversion<string>();
 
             base.OnModelCreating(modelBuilder);
         }

@@ -8,9 +8,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Changelog file to track project changes
+- Complete frontend-backend integration for auction pages
+- Dynamic data loading for all auction-related pages
+- Real-time countdown timers and ending soon detection
+- Error handling and loading states for better UX
+- **Local Image Storage System**: Complete image upload and storage system
+- **Image Upload API**: Endpoints for uploading, serving, and deleting images
+- **Smart Image Fallbacks**: Category-based image selection for auctions without uploaded images
 
-## [0.3.3] - 2025-09-22
+## [0.4.0] - 2025-01-17
+
+### Added
+- **Frontend Integration with Backend API - Phase 2**:
+  - Updated AuctionListingPage to load auction data from backend API
+  - Updated AuctionDetailsPage to fetch auction details and bid history from backend
+  - Added data transformation between backend DTOs and frontend expectations
+  - Implemented loading states and error handling for all auction pages
+  - Added support for dynamic categories from backend with static fallback
+  - Enhanced search functionality UI (ready for backend integration)
+
+### Changed
+- **All Auction Pages Now Use Backend Data**:
+  - Homepage: ✅ Already loads backend auction data
+  - Auctions Page: ✅ Now loads backend auction data  
+  - Categories Page: ✅ Uses same AuctionListingPage with backend data
+  - Auction Details: ✅ Now loads backend auction details and bid history
+
+### Technical
+- Data transformation handles backend DTO format conversion
+- Real-time time calculations for auction countdowns
+- Graceful error handling with user-friendly messages
+- Time ago formatting for bid history display
+
+## [0.3.3] - 2025-01-17
 
 ### Fixed
 - **Registration Response Format Issue**:

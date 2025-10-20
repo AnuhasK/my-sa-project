@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Heart, Share2, Eye, User, MapPin, Clock, Gavel, Shield, TrendingUp } from 'lucide-react';
 import { Button } from '../../components/button';
 import { Input } from '../../components/input';
@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/card'
 import { CountdownTimer } from './CountdownTimer';
 import { api } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import * as signalR from '@microsoft/signalr';
 
 interface AuctionDetailsPageProps {
   auctionId: string;
@@ -26,6 +27,7 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage, isAdmin = false 
   const [error, setError] = useState<string | null>(null);
   const [bidHistory, setBidHistory] = useState<any[]>([]);
   const [watchersCount, setWatchersCount] = useState(0);
+  const connectionRef = useRef<signalR.HubConnection | null>(null);
 
   // Check if auction is in watchlist when component loads
   useEffect(() => {
@@ -126,11 +128,19 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage, isAdmin = false 
         // Also fetch bid history if available
         try {
           const bidsData = await api.getBidsForAuction(auctionId);
-          const transformedBids = bidsData.map((bid: any, index: number) => ({
-            bidder: `${bid.bidder?.username?.substring(0, 1)}***${bid.bidder?.username?.slice(-1)}` || `u***r`,
-            amount: bid.amount,
-            time: formatTimeAgo(bid.createdAt)
-          }));
+          console.log('Raw bids data from API:', bidsData);
+          
+          const transformedBids = bidsData.map((bid: any) => {
+            console.log('Transforming bid:', bid);
+            // Handle both camelCase (System.Text.Json default) and PascalCase
+            return {
+              bidder: bid.bidderName || bid.BidderName || 'Anonymous',
+              amount: bid.amount || bid.Amount || 0,
+              time: formatTimeAgo(bid.timestamp || bid.Timestamp)
+            };
+          });
+          
+          console.log('Transformed bids:', transformedBids);
           setBidHistory(transformedBids);
         } catch (bidError) {
           console.log('Could not fetch bid history:', bidError);
@@ -150,20 +160,100 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage, isAdmin = false 
     }
   }, [auctionId]);
 
+  // SignalR real-time updates
+  useEffect(() => {
+    if (!auctionId) return;
+
+    // Create SignalR connection
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl('http://localhost:5021/hubs/auction')
+      .withAutomaticReconnect()
+      .build();
+
+    connectionRef.current = connection;
+
+    // Start connection and join auction group
+    connection.start()
+      .then(() => {
+        console.log('SignalR connected');
+        return connection.invoke('JoinAuction', auctionId);
+      })
+      .then(() => {
+        console.log(`Joined auction group: ${auctionId}`);
+      })
+      .catch(err => console.error('SignalR connection error:', err));
+
+    // Listen for bid placed events
+    connection.on('BidPlaced', (data: any) => {
+      console.log('Real-time bid received:', data);
+      
+      // Handle both camelCase and PascalCase from SignalR
+      const bidAmount = data.amount || data.Amount;
+      console.log('Extracted bid amount:', bidAmount);
+      
+      if (!bidAmount) {
+        console.error('No valid amount in SignalR data:', data);
+        return;
+      }
+      
+      // Update auction current price and bid count
+      setAuction((prev: any) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          currentBid: bidAmount,
+          minBid: bidAmount + 50,
+          bids: prev.bids + 1
+        };
+      });
+
+      // Refresh bid history
+      api.getBidsForAuction(auctionId)
+        .then(bidsData => {
+          const transformedBids = bidsData.map((bid: any) => ({
+            bidder: bid.bidderName || bid.BidderName || 'Anonymous',
+            amount: bid.amount || bid.Amount || 0,
+            time: formatTimeAgo(bid.timestamp || bid.Timestamp)
+          }));
+          setBidHistory(transformedBids);
+        })
+        .catch(err => console.error('Error refreshing bid history:', err));
+    });
+
+    // Cleanup on unmount
+    return () => {
+      if (connectionRef.current) {
+        connectionRef.current.invoke('LeaveAuction', auctionId)
+          .catch(err => console.error('Error leaving auction:', err));
+        connectionRef.current.stop()
+          .catch(err => console.error('Error stopping SignalR:', err));
+      }
+    };
+  }, [auctionId]);
+
   // Helper function to format time ago
   const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    
-    const minutes = Math.floor(diff / (1000 * 60));
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    
-    if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
-    if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-    if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-    return 'Just now';
+    try {
+      if (!dateString) return 'Just now';
+      
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Just now';
+      
+      const now = new Date();
+      const diff = now.getTime() - date.getTime();
+      
+      const minutes = Math.floor(diff / (1000 * 60));
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      
+      if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
+      if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+      if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+      return 'Just now';
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return 'Just now';
+    }
   };
 
   const handlePlaceBid = async () => {
@@ -212,9 +302,9 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage, isAdmin = false 
       try {
         const bidsData = await api.getBidsForAuction(auctionId);
         const transformedBids = bidsData.map((bid: any) => ({
-          bidder: bid.bidderName,
-          amount: bid.amount,
-          time: formatTimeAgo(bid.timestamp)
+          bidder: bid.bidderName || bid.BidderName || 'Anonymous',
+          amount: bid.amount || bid.Amount || 0,
+          time: formatTimeAgo(bid.timestamp || bid.Timestamp)
         }));
         setBidHistory(transformedBids);
       } catch (bidError) {
@@ -398,10 +488,10 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage, isAdmin = false 
                 <div className="text-center p-4 bg-gray-50 rounded-lg">
                   <div className="text-sm text-gray-600 mb-1">Current Bid</div>
                   <div className="text-3xl font-bold text-gray-900">
-                    ${auction.currentBid.toLocaleString()}
+                    ${auction.currentBid ? auction.currentBid.toLocaleString() : '0'}
                   </div>
                   <div className="text-sm text-gray-600 mt-1">
-                    {auction.bids} bids
+                    {auction.bids || 0} bids
                   </div>
                 </div>
 
@@ -415,7 +505,7 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage, isAdmin = false 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-600">Minimum bid:</span>
-                    <span className="font-medium">${auction.minBid.toLocaleString()}</span>
+                    <span className="font-medium">${auction.minBid ? auction.minBid.toLocaleString() : '0'}</span>
                   </div>
                   
                   {!isAdmin && (
@@ -451,7 +541,7 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage, isAdmin = false 
                       variant="outline"
                       className="w-full border-gray-300 py-3"
                     >
-                      Buy Now - ${auction.buyNowPrice.toLocaleString()}
+                      Buy Now - ${auction.buyNowPrice ? auction.buyNowPrice.toLocaleString() : '0'}
                     </Button>
                   )}
                 </div>
@@ -473,24 +563,28 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage, isAdmin = false 
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {bidHistory.map((bid, index) => (
+                  {bidHistory.length > 0 ? bidHistory.map((bid, index) => (
                     <div key={index} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
                       <div className="flex items-center space-x-3">
                         <Avatar className="w-8 h-8">
                           <AvatarFallback className="bg-gray-200 text-xs">
-                            {bid.bidder.charAt(0).toUpperCase()}
+                            {bid.bidder?.charAt(0).toUpperCase() || 'U'}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <div className="font-medium text-sm">{bid.bidder}</div>
-                          <div className="text-xs text-gray-500">{bid.time}</div>
+                          <div className="font-medium text-sm">{bid.bidder || 'Anonymous'}</div>
+                          <div className="text-xs text-gray-500">{bid.time || 'Just now'}</div>
                         </div>
                       </div>
                       <div className="font-semibold text-gray-900">
-                        ${bid.amount.toLocaleString()}
+                        ${bid.amount ? bid.amount.toLocaleString() : '0'}
                       </div>
                     </div>
-                  ))}
+                  )) : (
+                    <div className="text-center py-4 text-gray-500">
+                      No bids yet. Be the first to bid!
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

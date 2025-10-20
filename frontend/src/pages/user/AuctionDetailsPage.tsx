@@ -18,10 +18,39 @@ interface AuctionDetailsPageProps {
 }
 
 export function AuctionDetailsPage({ auctionId, setCurrentPage, isAdmin = false }: AuctionDetailsPageProps) {
-  const { user, token } = useAuth(); // Add auth context
+  const { user, token } = useAuth();
   const [bidAmount, setBidAmount] = useState('');
   const [selectedImage, setSelectedImage] = useState(0);
   const [isWatching, setIsWatching] = useState(false);
+  // Check if auction is in watchlist on mount
+  useEffect(() => {
+    const checkWatchlistStatus = async () => {
+      if (token) {
+        try {
+          console.log(`Checking watchlist status for auction ${auctionId}`);
+          const watched = await api.checkWatchlist(auctionId, token);
+          console.log(`Watchlist status for auction ${auctionId}:`, watched);
+          setIsWatching(watched);
+        } catch (error) {
+          console.error('Error checking watchlist status:', error);
+          setIsWatching(false); // Default to not watched on error
+        }
+      }
+    };
+    
+    const fetchWatchersCount = async () => {
+      try {
+        const count = await api.getWatchersCount(auctionId);
+        console.log(`Watchers count for auction ${auctionId}:`, count);
+        setWatchersCount(count);
+      } catch (error) {
+        console.error('Error fetching watchers count:', error);
+      }
+    };
+    
+    checkWatchlistStatus();
+    fetchWatchersCount();
+  }, [auctionId, token]);
   const [auction, setAuction] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,20 +90,39 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage, isAdmin = false 
   // Handle watchlist toggle
   const handleWatchlistToggle = async () => {
     try {
-      const token = localStorage.getItem('authToken');
-      if (!token) {
+      const currentToken = localStorage.getItem('token');
+      console.log('Watchlist toggle clicked on details page');
+      console.log('Current state - isWatching:', isWatching);
+      console.log('Token exists:', !!currentToken);
+      
+      if (!currentToken) {
         alert('Please login to add items to your watchlist');
         return;
       }
 
       if (isWatching) {
-        await api.removeFromWatchlist(auctionId, token);
-        setIsWatching(false);
-        setWatchersCount(prev => Math.max(0, prev - 1));
+        console.log(`Attempting to remove auction ${auctionId} from watchlist`);
+        try {
+          await api.removeFromWatchlist(auctionId, currentToken);
+          setIsWatching(false);
+          setWatchersCount(prev => Math.max(0, prev - 1));
+          console.log('Removed from watchlist');
+        } catch (removeError: any) {
+          console.error('Remove failed:', removeError);
+          // If it's a 404, it means it wasn't in the watchlist to begin with
+          if (removeError.message?.includes('404') || removeError.message?.includes('not found')) {
+            console.log('Item was not in watchlist, syncing state');
+            setIsWatching(false); // Sync the state
+          } else {
+            throw removeError; // Re-throw other errors
+          }
+        }
       } else {
-        await api.addToWatchlist(auctionId, token);
+        console.log(`Attempting to add auction ${auctionId} to watchlist`);
+        await api.addToWatchlist(auctionId, currentToken);
         setIsWatching(true);
         setWatchersCount(prev => prev + 1);
+        console.log('Added to watchlist');
       }
     } catch (error) {
       console.error('Error toggling watchlist:', error);
@@ -486,10 +534,17 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage, isAdmin = false 
                       <Eye className="w-4 h-4" />
                       <span>{auction.views} views</span>
                     </div>
-                    <div className="flex items-center space-x-1">
-                      <Heart className="w-4 h-4" />
+                    <button
+                      type="button"
+                      onClick={handleWatchlistToggle}
+                      className={`flex items-center space-x-1 p-2 rounded-full transition-all duration-200 z-10 ${
+                        isWatching ? 'bg-red-500 text-white' : 'bg-black/60 text-white hover:bg-black/80'
+                      }`}
+                      title={isWatching ? 'Remove from watchlist' : 'Add to watchlist'}
+                    >
+                      <Heart className={`w-4 h-4 ${isWatching ? 'fill-current' : ''}`} />
                       <span>{watchersCount} watching</span>
-                    </div>
+                    </button>
                   </div>
                 </div>
               </CardHeader>

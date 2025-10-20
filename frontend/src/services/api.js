@@ -426,7 +426,9 @@ class ApiService {
       method: 'GET',
       headers: this.getAuthHeaders(token),
     });
-    return this.handleResponse(response);
+    const data = await this.handleResponse(response);
+    // Backend returns { auctionId, isInWatchlist }, extract the boolean
+    return data.isInWatchlist;
   }
 
   async getWatchersCount(auctionId) {
@@ -434,7 +436,9 @@ class ApiService {
       method: 'GET',
       headers: this.getAuthHeaders(),
     });
-    return this.handleResponse(response);
+    const data = await this.handleResponse(response);
+    // Backend returns { auctionId, watchersCount }, extract the count
+    return data.watchersCount;
   }
 
   // Helper method to get image URL

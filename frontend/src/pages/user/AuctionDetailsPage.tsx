@@ -12,9 +12,10 @@ import { api } from '../../services/api';
 interface AuctionDetailsPageProps {
   auctionId: string;
   setCurrentPage: (page: string) => void;
+  isAdmin?: boolean;
 }
 
-export function AuctionDetailsPage({ auctionId, setCurrentPage }: AuctionDetailsPageProps) {
+export function AuctionDetailsPage({ auctionId, setCurrentPage, isAdmin = false }: AuctionDetailsPageProps) {
   const [bidAmount, setBidAmount] = useState('');
   const [selectedImage, setSelectedImage] = useState(0);
   const [isWatching, setIsWatching] = useState(false);
@@ -368,25 +369,35 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage }: AuctionDetails
                     <span className="font-medium">${auction.minBid.toLocaleString()}</span>
                   </div>
                   
-                  <div className="space-y-3">
-                    <Input
-                      type="number"
-                      value={bidAmount}
-                      onChange={(e) => setBidAmount(e.target.value)}
-                      placeholder={`Enter $${auction.minBid} or more`}
-                      className="text-center text-lg font-medium"
-                    />
-                    <Button 
-                      onClick={handlePlaceBid}
-                      className="w-full bg-black text-white hover:bg-gray-800 py-3"
-                      disabled={!bidAmount || parseFloat(bidAmount) < auction.minBid}
-                    >
-                      <Gavel className="w-4 h-4 mr-2" />
-                      Place Bid
-                    </Button>
-                  </div>
+                  {!isAdmin && (
+                    <div className="space-y-3">
+                      <Input
+                        type="number"
+                        value={bidAmount}
+                        onChange={(e) => setBidAmount(e.target.value)}
+                        placeholder={`Enter $${auction.minBid} or more`}
+                        className="text-center text-lg font-medium"
+                      />
+                      <Button 
+                        onClick={handlePlaceBid}
+                        className="w-full bg-black text-white hover:bg-gray-800 py-3"
+                        disabled={!bidAmount || parseFloat(bidAmount) < auction.minBid}
+                      >
+                        <Gavel className="w-4 h-4 mr-2" />
+                        Place Bid
+                      </Button>
+                    </div>
+                  )}
 
-                  {auction.buyNowPrice && (
+                  {isAdmin && (
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-sm text-yellow-800 text-center">
+                        <strong>Admin View:</strong> Bidding is disabled for admin accounts
+                      </p>
+                    </div>
+                  )}
+
+                  {!isAdmin && auction.buyNowPrice && (
                     <Button 
                       variant="outline"
                       className="w-full border-gray-300 py-3"

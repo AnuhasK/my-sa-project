@@ -16,10 +16,11 @@ import { useState } from 'react';
 interface AdminSidebarProps {
   currentPage: string;
   setCurrentPage: (page: string) => void;
-  setIsLoggedIn: (loggedIn: boolean) => void;
+  setIsLoggedIn?: (loggedIn: boolean) => void; // For backward compatibility
+  onLogout?: () => void; // New logout callback
 }
 
-export function AdminSidebar({ currentPage, setCurrentPage, setIsLoggedIn }: AdminSidebarProps) {
+export function AdminSidebar({ currentPage, setCurrentPage, setIsLoggedIn, onLogout }: AdminSidebarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navigationItems = [
@@ -38,8 +39,12 @@ export function AdminSidebar({ currentPage, setCurrentPage, setIsLoggedIn }: Adm
   };
 
   const handleLogout = () => {
-    setIsLoggedIn(false);
-    setCurrentPage('home');
+    if (onLogout) {
+      onLogout();
+    } else if (setIsLoggedIn) {
+      setIsLoggedIn(false);
+      setCurrentPage('home');
+    }
   };
 
   return (

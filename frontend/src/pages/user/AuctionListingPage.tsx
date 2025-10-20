@@ -13,6 +13,7 @@ import api from '../../services/api';
 interface AuctionListingPageProps {
   setCurrentPage: (page: string) => void;
   setSelectedAuction: (id: string) => void;
+  isAdmin?: boolean;
 }
 
 interface Auction {

@@ -6,6 +6,7 @@ import { AuctionListingPage } from './pages/user/AuctionListingPage';
 import { AuctionDetailsPage } from './pages/user/AuctionDetailsPage';
 import { AuthForms } from './pages/public/AuthForms';
 import { UserDashboard } from './pages/user/UserDashboard';
+import { UserProfile } from './pages/user/UserProfile';
 import { AdminSidebar } from './pages/admin/AdminSidebar';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { UserManagement } from './pages/admin/UserManagement';
@@ -96,6 +97,15 @@ function AppContent() {
               setSelectedAuction={setSelectedAuction}
             />
           )
+        ) : (
+          <AuthForms 
+            mode="login"
+            setCurrentPage={setCurrentPage}
+          />
+        );
+      case 'profile':
+        return isAuthenticated ? (
+          <UserProfile />
         ) : (
           <AuthForms 
             mode="login"

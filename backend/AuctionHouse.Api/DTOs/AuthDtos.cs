@@ -27,5 +27,23 @@ namespace AuctionHouse.Api.DTOs
         public string Username { get; set; } = null!;
         public string Email { get; set; } = null!;
         public string Role { get; set; } = null!;
+        public string? ProfileImageUrl { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? Address { get; set; }
+        public string? Bio { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class UpdateProfileDto
+    {
+        public string? PhoneNumber { get; set; }
+        public string? Address { get; set; }
+        public string? Bio { get; set; }
+    }
+
+    public class ChangePasswordDto
+    {
+        public string CurrentPassword { get; set; } = null!;
+        public string NewPassword { get; set; } = null!;
     }
 }

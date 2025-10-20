@@ -61,8 +61,53 @@ namespace AuctionHouse.Api.Services
                 Id = user.Id,
                 Username = user.Username,
                 Email = user.Email,
-                Role = user.Role
+                Role = user.Role,
+                ProfileImageUrl = user.ProfileImageUrl,
+                PhoneNumber = user.PhoneNumber,
+                Address = user.Address,
+                Bio = user.Bio,
+                CreatedAt = user.CreatedAt
             };
+        }
+
+        public async Task<UserProfileDto?> UpdateProfileAsync(int userId, UpdateProfileDto dto)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null) return null;
+
+            // Update only the fields that are provided
+            if (dto.PhoneNumber != null) user.PhoneNumber = dto.PhoneNumber;
+            if (dto.Address != null) user.Address = dto.Address;
+            if (dto.Bio != null) user.Bio = dto.Bio;
+
+            await _db.SaveChangesAsync();
+
+            return await GetCurrentUserAsync(userId);
+        }
+
+        public async Task<bool> UpdateProfileImageAsync(int userId, string imageUrl)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null) return false;
+
+            user.ProfileImageUrl = imageUrl;
+            await _db.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> ChangePasswordAsync(int userId, ChangePasswordDto dto)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null) return false;
+
+            // Verify current password
+            if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.PasswordHash))
+                throw new ApplicationException("Current password is incorrect");
+
+            // Update to new password
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            await _db.SaveChangesAsync();
+            return true;
         }
 
         public async Task LogoutAsync(string token, int userId)

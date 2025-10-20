@@ -90,6 +90,15 @@ export function Header({ currentPage, setCurrentPage, isLoggedIn, setIsLoggedIn 
                   <span>Dashboard</span>
                 </Button>
                 <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setCurrentPage('profile')}
+                  className="hidden sm:flex items-center space-x-2 text-gray-700 hover:text-black"
+                >
+                  <User className="w-4 h-4" />
+                  <span>Profile</span>
+                </Button>
+                <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setIsLoggedIn(false)}
@@ -162,15 +171,26 @@ export function Header({ currentPage, setCurrentPage, isLoggedIn, setIsLoggedIn 
               ))}
               
               {isLoggedIn && (
-                <button
-                  onClick={() => {
-                    setCurrentPage('dashboard');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="block px-3 py-2 text-base w-full text-left text-gray-700 hover:bg-gray-50"
-                >
-                  Dashboard
-                </button>
+                <>
+                  <button
+                    onClick={() => {
+                      setCurrentPage('dashboard');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="block px-3 py-2 text-base w-full text-left text-gray-700 hover:bg-gray-50"
+                  >
+                    Dashboard
+                  </button>
+                  <button
+                    onClick={() => {
+                      setCurrentPage('profile');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="block px-3 py-2 text-base w-full text-left text-gray-700 hover:bg-gray-50"
+                  >
+                    Profile
+                  </button>
+                </>
               )}
             </div>
           </div>

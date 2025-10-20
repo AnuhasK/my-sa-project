@@ -93,6 +93,58 @@ class ApiService {
     return this.handleResponse(response);
   }
 
+  async updateProfile(profileData, token) {
+    const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify(profileData),
+    });
+    return this.handleResponse(response);
+  }
+
+  async changePassword(passwordData, token) {
+    const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify(passwordData),
+    });
+    return this.handleResponse(response);
+  }
+
+  async updateProfileImage(imageUrl, token) {
+    const response = await fetch(`${API_BASE_URL}/auth/profile-image`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify(imageUrl),
+    });
+    return this.handleResponse(response);
+  }
+
+  // User statistics endpoints
+  async getUserStats(token) {
+    const response = await fetch(`${API_BASE_URL}/users/stats`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  async getUserActiveBids(token) {
+    const response = await fetch(`${API_BASE_URL}/users/active-bids`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  async getUserWonAuctions(token) {
+    const response = await fetch(`${API_BASE_URL}/users/won-auctions`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
   // Auction endpoints
   async getAuctions(filters = {}) {
     const params = new URLSearchParams();

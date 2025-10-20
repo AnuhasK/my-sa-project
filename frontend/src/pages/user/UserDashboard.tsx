@@ -18,13 +18,102 @@ export function UserDashboard({ setCurrentPage, setSelectedAuction }: UserDashbo
   const [activeTab, setActiveTab] = useState('overview');
   const [watchedAuctions, setWatchedAuctions] = useState<any[]>([]);
   const [loadingWatchlist, setLoadingWatchlist] = useState(false);
+  const [userStats, setUserStats] = useState<any>(null);
+  const [userData, setUserData] = useState<any>(null);
+  const [activeBids, setActiveBids] = useState<any[]>([]);
+  const [wonAuctions, setWonAuctions] = useState<any[]>([]);
+  const [loadingStats, setLoadingStats] = useState(false);
+
+  // Fetch user profile and stats when component mounts
+  useEffect(() => {
+    fetchUserProfile();
+    fetchUserStats();
+  }, []);
 
   // Fetch watchlist when component mounts or when tab changes to watching
   useEffect(() => {
     if (activeTab === 'watching' || activeTab === 'overview') {
       fetchWatchlist();
     }
+    if (activeTab === 'active-bids' || activeTab === 'overview') {
+      fetchActiveBids();
+    }
+    if (activeTab === 'won' || activeTab === 'overview') {
+      fetchWonAuctions();
+    }
   }, [activeTab]);
+
+  const fetchUserProfile = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      const profile = await api.getCurrentUser(token);
+      setUserData({
+        name: profile.username,
+        email: profile.email,
+        memberSince: new Date(profile.createdAt).getFullYear().toString(),
+        avatar: profile.profileImageUrl,
+        role: profile.role
+      });
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  };
+
+  const fetchUserStats = async () => {
+    try {
+      setLoadingStats(true);
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      const stats = await api.getUserStats(token);
+      setUserStats(stats);
+    } catch (error) {
+      console.error('Error fetching user stats:', error);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  const fetchActiveBids = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      const bids = await api.getUserActiveBids(token);
+      setActiveBids(bids.map((bid: any) => ({
+        id: bid.auctionId.toString(),
+        title: bid.title,
+        myBid: bid.myBid,
+        currentBid: bid.currentBid,
+        status: bid.status,
+        timeLeft: formatTimeLeft(new Date(bid.timeLeft)),
+        imageUrl: 'https://images.unsplash.com/photo-1695528589305-5103f5c52306?w=400'
+      })));
+    } catch (error) {
+      console.error('Error fetching active bids:', error);
+    }
+  };
+
+  const fetchWonAuctions = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      const won = await api.getUserWonAuctions(token);
+      setWonAuctions(won.map((auction: any) => ({
+        id: auction.auctionId.toString(),
+        title: auction.title,
+        finalBid: auction.winningBid,
+        wonDate: formatTimeAgo(new Date(auction.endedAt)),
+        imageUrl: 'https://images.unsplash.com/photo-1695528589305-5103f5c52306?w=400',
+        status: 'delivered'
+      })));
+    } catch (error) {
+      console.error('Error fetching won auctions:', error);
+    }
+  };
 
   const fetchWatchlist = async () => {
     try {
@@ -74,59 +163,18 @@ export function UserDashboard({ setCurrentPage, setSelectedAuction }: UserDashbo
     return `${minutes}m`;
   };
 
-  // Mock user data
-  const userData = {
-    name: 'John Smith',
-    email: 'john.smith@email.com',
-    memberSince: '2022',
-    avatar: null,
-    stats: {
-      totalBids: 47,
-      wonAuctions: 12,
-      totalSpent: 15420,
-      savedItems: watchedAuctions.length // Use real watchlist count
-    }
+  // Helper function to format time ago
+  const formatTimeAgo = (date: Date) => {
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    
+    if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
+    if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    return 'Just now';
   };
-
-  const activeBids = [
-    {
-      id: '1',
-      title: 'Vintage Omega Speedmaster Professional',
-      myBid: 2750,
-      currentBid: 2850,
-      status: 'outbid',
-      timeLeft: '2d 14h 32m',
-      imageUrl: 'img/products/watch.jpg'
-    },
-    {
-      id: '3',
-      title: 'Leica M3 35mm Film Camera',
-      myBid: 890,
-      currentBid: 890,
-      status: 'winning',
-      timeLeft: '1d 8h 15m',
-      imageUrl: 'img/products/camera.jpg'
-    }
-  ];
-
-  const wonAuctions = [
-    {
-      id: '10',
-      title: 'Art Deco Table Lamp',
-      finalBid: 425,
-      wonDate: '3 days ago',
-      imageUrl: 'img/products/lamp.jpg',
-      status: 'delivered'
-    },
-    {
-      id: '11',
-      title: 'Vintage Polaroid Camera',
-      finalBid: 180,
-      wonDate: '1 week ago',
-      imageUrl: 'img/products/camera.jpg',
-      status: 'shipped'
-    }
-  ];
 
   const notifications = [
     {
@@ -181,15 +229,15 @@ export function UserDashboard({ setCurrentPage, setSelectedAuction }: UserDashbo
         <div className="mb-8">
           <div className="flex items-center space-x-4 mb-6">
             <Avatar className="w-20 h-20">
-              <AvatarImage src={userData.avatar} />
+              <AvatarImage src={userData?.avatar} />
               <AvatarFallback className="bg-gray-200 text-2xl">
-                {userData.name.split(' ').map(n => n[0]).join('')}
+                {userData?.name ? userData.name.split(' ').map((n: string) => n[0]).join('') : 'U'}
               </AvatarFallback>
             </Avatar>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">{userData.name}</h1>
-              <p className="text-gray-600">{userData.email}</p>
-              <p className="text-sm text-gray-500">Member since {userData.memberSince}</p>
+              <h1 className="text-3xl font-bold text-gray-900">{userData?.name || 'Loading...'}</h1>
+              <p className="text-gray-600">{userData?.email || ''}</p>
+              <p className="text-sm text-gray-500">Member since {userData?.memberSince || 'N/A'}</p>
             </div>
           </div>
 
@@ -200,7 +248,9 @@ export function UserDashboard({ setCurrentPage, setSelectedAuction }: UserDashbo
                 <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg mx-auto mb-2">
                   <Gavel className="w-6 h-6 text-blue-600" />
                 </div>
-                <div className="text-2xl font-bold text-gray-900">{userData.stats.totalBids}</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {loadingStats ? '...' : (userStats?.totalBids || 0)}
+                </div>
                 <div className="text-sm text-gray-600">Total Bids</div>
               </CardContent>
             </Card>
@@ -210,7 +260,9 @@ export function UserDashboard({ setCurrentPage, setSelectedAuction }: UserDashbo
                 <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg mx-auto mb-2">
                   <Trophy className="w-6 h-6 text-green-600" />
                 </div>
-                <div className="text-2xl font-bold text-gray-900">{userData.stats.wonAuctions}</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {loadingStats ? '...' : (userStats?.wonAuctions || 0)}
+                </div>
                 <div className="text-sm text-gray-600">Won Auctions</div>
               </CardContent>
             </Card>
@@ -220,7 +272,9 @@ export function UserDashboard({ setCurrentPage, setSelectedAuction }: UserDashbo
                 <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg mx-auto mb-2">
                   <DollarSign className="w-6 h-6 text-purple-600" />
                 </div>
-                <div className="text-2xl font-bold text-gray-900">${userData.stats.totalSpent.toLocaleString()}</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {loadingStats ? '...' : `$${(userStats?.totalSpent || 0).toLocaleString()}`}
+                </div>
                 <div className="text-sm text-gray-600">Total Spent</div>
               </CardContent>
             </Card>
@@ -230,7 +284,9 @@ export function UserDashboard({ setCurrentPage, setSelectedAuction }: UserDashbo
                 <div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-lg mx-auto mb-2">
                   <Heart className="w-6 h-6 text-red-600" />
                 </div>
-                <div className="text-2xl font-bold text-gray-900">{userData.stats.savedItems}</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {loadingStats ? '...' : (userStats?.watchlistCount || 0)}
+                </div>
                 <div className="text-sm text-gray-600">Saved Items</div>
               </CardContent>
             </Card>

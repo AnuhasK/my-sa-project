@@ -2,7 +2,7 @@
 
 ## Issue #1: Heart Icon Click Not Working on AuctionCard
 **Date:** October 20, 2025
-**Status:** IN PROGRESS - Needs Further Investigation
+**Status:** PARTIALLY RESOLVED - AuctionDetailsPage working, AuctionCard still has issues
 
 ### Symptoms:
 - Heart icon button renders correctly on auction cards
@@ -10,6 +10,12 @@
 - Click events seem to reach the handler but console logs don't appear
 - Alert popup shows "Please login to add items to your watchlist" even when user is authenticated
 - Component render logs show `isAuthenticated: true`
+
+### ROOT CAUSE FOUND:
+**API Response Format Mismatch**
+- Backend returns: `{ auctionId: X, isInWatchlist: true }` and `{ auctionId: X, watchersCount: 5 }`
+- Frontend was expecting: just `true` and just `5`
+- This caused state to be set incorrectly, leading to sync issues
 
 ### Investigation Done:
 1. ✅ Verified AuthContext is working (isAuthenticated: true in render logs)
@@ -42,15 +48,36 @@
 5. Test with React strict mode disabled
 6. Try removing all parent onClick handlers temporarily
 
-### Workaround:
-Implement watchlist toggle on AuctionDetailsPage first, which has a different component structure and may not have the same issues.
+### SOLUTION IMPLEMENTED:
+1. **Fixed API response parsing** in `api.js`:
+   - `checkWatchlist()` now extracts `data.isInWatchlist` instead of returning full object
+   - `getWatchersCount()` now extracts `data.watchersCount` instead of returning full object
+
+2. **Improved error handling** in AuctionDetailsPage:
+   - Added try-catch specifically for remove operations
+   - Handle 404 errors gracefully (sync state if item wasn't in watchlist)
+   - Added comprehensive debug logging
+
+3. **Added watchlist status check on mount**:
+   - Fetch watchlist status when page loads
+   - Fetch watchers count separately
+   - Both update component state correctly
+
+### Result:
+✅ **AuctionDetailsPage watchlist feature fully working**
+- Heart icon toggles correctly
+- State syncs with backend
+- Watchers count updates in real-time
+- 404 errors handled gracefully
+
+⚠️ **AuctionCard still has issues** - likely due to event bubbling or closure issues. Workaround: Users can add/remove from watchlist on the details page.
 
 ---
 
 ## Components Status:
 - ✅ Backend API: All 5 endpoints working (WatchlistService, WatchlistController)
-- ✅ Frontend API: All 5 methods implemented (api.js)
-- ⚠️ AuctionCard: Heart icon renders but click handler issues
+- ✅ Frontend API: All 5 methods implemented and fixed (api.js)
+- ⚠️ AuctionCard: Heart icon renders but click handler issues (non-critical - details page works)
 - ✅ WatchlistPage: Component created and ready
 - ✅ Header: Navigation link with count badge added
-- ⏳ AuctionDetailsPage: Watchlist feature not yet implemented
+- ✅ AuctionDetailsPage: Watchlist feature WORKING

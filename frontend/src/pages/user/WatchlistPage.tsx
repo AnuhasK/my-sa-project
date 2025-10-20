@@ -5,15 +5,17 @@ import { AuctionCard } from './AuctionCard';
 import { Heart, AlertCircle } from 'lucide-react';
 
 interface WatchlistAuction {
-  id: string;
+  id: number;  // Watchlist entry ID
+  auctionId: number;  // Actual auction ID
   title: string;
   description: string;
   startingPrice: number;
   currentBid: number;
-  endTime: string;
+  endDate: string;
   imageUrl: string;
-  views: number;
   categoryName: string;
+  totalBids: number;
+  addedToWatchlistDate: string;
   isEnding: boolean;
 }
 
@@ -50,8 +52,8 @@ export function WatchlistPage({ setCurrentPage, setSelectedAuction }: WatchlistP
     fetchWatchlist();
   }, [user, token, setCurrentPage]);
 
-  const calculateTimeLeft = (endTime: string) => {
-    const end = new Date(endTime + 'Z');
+  const calculateTimeLeft = (endDate: string) => {
+    const end = new Date(endDate);
     const now = new Date();
     const diff = end.getTime() - now.getTime();
 
@@ -130,16 +132,16 @@ export function WatchlistPage({ setCurrentPage, setSelectedAuction }: WatchlistP
             {auctions.map((auction) => (
               <AuctionCard
                 key={auction.id}
-                id={auction.id}
+                id={auction.auctionId.toString()}
                 title={auction.title}
                 currentBid={auction.currentBid}
-                timeLeft={calculateTimeLeft(auction.endTime)}
-                imageUrl={auction.imageUrl}
-                views={auction.views}
-                category={auction.categoryName}
+                timeLeft={calculateTimeLeft(auction.endDate)}
+                imageUrl={auction.imageUrl || '/img/placeholder-auction.jpg'}
+                views={auction.totalBids}
+                category={auction.categoryName || 'Uncategorized'}
                 isEnding={auction.isEnding}
                 onClick={() => {
-                  setSelectedAuction(auction.id);
+                  setSelectedAuction(auction.auctionId.toString());
                   setCurrentPage('auction-details');
                 }}
               />

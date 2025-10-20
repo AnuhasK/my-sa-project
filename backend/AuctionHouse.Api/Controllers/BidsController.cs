@@ -41,5 +41,40 @@ namespace AuctionHouse.Api.Controllers
             }
             catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
         }
+
+        [HttpGet("auction/{auctionId}")]
+        public async Task<IActionResult> GetBidsForAuction(int auctionId)
+        {
+            try
+            {
+                var bids = await _bidSvc.GetBidsForAuctionAsync(auctionId);
+                return Ok(bids);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [Authorize]
+        [HttpGet("my-bids")]
+        public async Task<IActionResult> GetMyBids()
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+                {
+                    return Unauthorized(new { message = "Invalid authentication token" });
+                }
+
+                var bids = await _bidSvc.GetUserBidsAsync(userId);
+                return Ok(bids);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }

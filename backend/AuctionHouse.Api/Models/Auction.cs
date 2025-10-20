@@ -11,6 +11,7 @@ namespace AuctionHouse.Api.Models
         public decimal CurrentPrice { get; set; }
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public int SellerId { get; set; }
         public User Seller { get; set; } = null!;
         public int? CategoryId { get; set; }

@@ -28,7 +28,7 @@ namespace AuctionHouse.Api.Services
                 ActiveAuctions = await _db.Auctions.CountAsync(a => a.Status == "Open"),
                 TotalBids = await _db.Bids.CountAsync(),
                 TotalTransactions = await _db.Transactions.CountAsync(),
-                TotalRevenue = await _db.Transactions.Where(t => t.Status == "Paid").SumAsync(t => (decimal?)t.Amount) ?? 0,
+                TotalRevenue = await _db.Transactions.Where(t => t.PaymentStatus == "Paid").SumAsync(t => (decimal?)t.Amount) ?? 0,
                 NewUsersToday = await _db.Users.CountAsync(u => u.CreatedAt >= today),
                 NewAuctionsToday = await _db.Auctions.CountAsync(a => a.CreatedAt >= today),
                 AverageAuctionPrice = await _db.Auctions.AverageAsync(a => (decimal?)a.CurrentPrice) ?? 0
@@ -91,10 +91,10 @@ namespace AuctionHouse.Api.Services
                     Email = u.Email,
                     Role = u.Role,
                     CreatedAt = u.CreatedAt,
-                    IsActive = true, // Add IsActive field to User model if needed
+                    IsActive = u.IsActive,
                     AuctionsCreated = _db.Auctions.Count(a => a.SellerId == u.Id),
                     BidsPlaced = _db.Bids.Count(b => b.BidderId == u.Id),
-                    AuctionsWon = _db.Transactions.Count(t => t.BuyerId == u.Id && t.Status == "Paid")
+                    AuctionsWon = _db.Transactions.Count(t => t.BuyerId == u.Id && t.PaymentStatus == "Paid")
                 })
                 .ToListAsync();
 
@@ -113,10 +113,10 @@ namespace AuctionHouse.Api.Services
                 Email = user.Email,
                 Role = user.Role,
                 CreatedAt = user.CreatedAt,
-                IsActive = true,
+                IsActive = user.IsActive,
                 AuctionsCreated = await _db.Auctions.CountAsync(a => a.SellerId == userId),
                 BidsPlaced = await _db.Bids.CountAsync(b => b.BidderId == userId),
-                AuctionsWon = await _db.Transactions.CountAsync(t => t.BuyerId == userId && t.Status == "Paid")
+                AuctionsWon = await _db.Transactions.CountAsync(t => t.BuyerId == userId && t.PaymentStatus == "Paid")
             };
 
             // Get recent auctions
@@ -130,8 +130,7 @@ namespace AuctionHouse.Api.Services
                     Title = a.Title,
                     CurrentPrice = a.CurrentPrice,
                     Status = a.Status,
-                    EndTime = a.EndTime,
-                    ImageUrl = _db.AuctionImages.Where(i => i.AuctionId == a.Id).Select(i => i.Url).FirstOrDefault()
+                    EndTime = a.EndTime
                 })
                 .ToListAsync();
 
@@ -167,7 +166,7 @@ namespace AuctionHouse.Api.Services
                     AuctionTitle = t.Auction.Title,
                     BuyerId = t.BuyerId,
                     Amount = t.Amount,
-                    Status = t.Status,
+                    PaymentStatus = t.PaymentStatus,
                     CreatedAt = t.CreatedAt
                 })
                 .ToListAsync();
@@ -180,13 +179,10 @@ namespace AuctionHouse.Api.Services
             var user = await _db.Users.FindAsync(userId);
             if (user == null) return false;
 
-            // In a real system, you'd add a "Suspended" or "IsActive" field to User model
-            // For now, we'll just log it
+            user.IsActive = false;
+            await _db.SaveChangesAsync();
+
             _logger.LogInformation($"User {userId} suspended. Reason: {reason}");
-            
-            // TODO: Add suspended field to User model
-            // user.IsActive = false;
-            // await _db.SaveChangesAsync();
 
             return true;
         }
@@ -196,11 +192,10 @@ namespace AuctionHouse.Api.Services
             var user = await _db.Users.FindAsync(userId);
             if (user == null) return false;
 
+            user.IsActive = true;
+            await _db.SaveChangesAsync();
+
             _logger.LogInformation($"User {userId} activated");
-            
-            // TODO: Update when IsActive field is added
-            // user.IsActive = true;
-            // await _db.SaveChangesAsync();
 
             return true;
         }
@@ -210,13 +205,12 @@ namespace AuctionHouse.Api.Services
             var user = await _db.Users.FindAsync(userId);
             if (user == null) return false;
 
-            // Soft delete - don't actually remove from database
-            // In production, you'd add a "DeletedAt" field
-            _logger.LogInformation($"User {userId} marked for deletion");
-            
-            // TODO: Implement soft delete
-            // user.DeletedAt = DateTime.UtcNow;
-            // await _db.SaveChangesAsync();
+            // Soft delete
+            user.DeletedAt = DateTime.UtcNow;
+            user.IsActive = false;
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation($"User {userId} soft deleted");
 
             return true;
         }
@@ -235,8 +229,7 @@ namespace AuctionHouse.Api.Services
                     Title = a.Title,
                     CurrentPrice = a.CurrentPrice,
                     Status = a.Status,
-                    EndTime = a.EndTime,
-                    ImageUrl = _db.AuctionImages.Where(i => i.AuctionId == a.Id).Select(i => i.Url).FirstOrDefault()
+                    EndTime = a.EndTime
                 })
                 .ToListAsync();
 

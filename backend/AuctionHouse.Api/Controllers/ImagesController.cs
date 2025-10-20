@@ -19,6 +19,7 @@ namespace AuctionHouse.Api.Controllers
 
         [HttpPost("upload")]
         [Authorize] // Only authenticated users can upload images
+        [RequestSizeLimit(5 * 1024 * 1024)] // Enforce 5MB limit at Kestrel level
         public async Task<IActionResult> UploadImage(IFormFile file)
         {
             try

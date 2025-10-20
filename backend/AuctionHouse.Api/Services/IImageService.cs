@@ -33,6 +33,10 @@ namespace AuctionHouse.Api.Services
                 // Generate unique filename
                 var fileExtension = Path.GetExtension(file.FileName);
                 var fileName = $"{Guid.NewGuid()}{fileExtension}";
+                
+                // Sanitize filename to prevent directory traversal
+                fileName = Path.GetFileName(fileName);
+                
                 var filePath = Path.Combine(_uploadPath, fileName);
 
                 // Save the file
@@ -40,6 +44,8 @@ namespace AuctionHouse.Api.Services
                 {
                     await file.CopyToAsync(stream);
                 }
+
+                _logger.LogInformation("Image saved successfully: {FileName}", fileName);
 
                 // Return the relative URL that can be accessed via the API
                 return $"/api/images/{fileName}";
@@ -55,6 +61,14 @@ namespace AuctionHouse.Api.Services
         {
             try
             {
+                // Sanitize filename to prevent directory traversal attacks
+                fileName = Path.GetFileName(fileName);
+                if (string.IsNullOrEmpty(fileName) || fileName.Contains(".."))
+                {
+                    _logger.LogWarning("Invalid or malicious filename attempted: {FileName}", fileName);
+                    return null;
+                }
+                
                 var filePath = Path.Combine(_uploadPath, fileName);
                 
                 if (!File.Exists(filePath))
@@ -75,11 +89,20 @@ namespace AuctionHouse.Api.Services
         {
             try
             {
+                // Sanitize filename to prevent directory traversal attacks
+                fileName = Path.GetFileName(fileName);
+                if (string.IsNullOrEmpty(fileName) || fileName.Contains(".."))
+                {
+                    _logger.LogWarning("Invalid or malicious filename attempted for deletion: {FileName}", fileName);
+                    throw new ArgumentException("Invalid filename", nameof(fileName));
+                }
+                
                 var filePath = Path.Combine(_uploadPath, fileName);
                 
                 if (File.Exists(filePath))
                 {
                     await Task.Run(() => File.Delete(filePath));
+                    _logger.LogInformation("Image deleted successfully: {FileName}", fileName);
                 }
             }
             catch (Exception ex)

@@ -273,6 +273,47 @@ class ApiService {
     return this.handleResponse(response);
   }
 
+  // Watchlist endpoints
+  async addToWatchlist(auctionId, token) {
+    const response = await fetch(`${API_BASE_URL}/watchlist/${auctionId}`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  async removeFromWatchlist(auctionId, token) {
+    const response = await fetch(`${API_BASE_URL}/watchlist/${auctionId}`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  async getWatchlist(token) {
+    const response = await fetch(`${API_BASE_URL}/watchlist`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  async checkWatchlist(auctionId, token) {
+    const response = await fetch(`${API_BASE_URL}/watchlist/check/${auctionId}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  async getWatchersCount(auctionId) {
+    const response = await fetch(`${API_BASE_URL}/watchlist/watchers/${auctionId}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(),
+    });
+    return this.handleResponse(response);
+  }
+
   // Helper method to get image URL
   getImageUrl(imagePath) {
     if (!imagePath) return null;

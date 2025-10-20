@@ -23,7 +23,12 @@ namespace AuctionHouse.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(AuctionCreateDto dto)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            {
+                return Unauthorized(new { message = "Invalid authentication token" });
+            }
+            
             var auction = await _svc.CreateAsync(userId, dto);
             return CreatedAtAction(nameof(Get), new { id = auction.Id }, auction);
         }

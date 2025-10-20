@@ -13,6 +13,7 @@ namespace AuctionHouse.Api.Data
         public DbSet<AuctionImage> AuctionImages { get; set; }
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<Category> Categories { get; set; }
+        public DbSet<Watchlist> Watchlists { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -68,6 +69,25 @@ namespace AuctionHouse.Api.Data
             modelBuilder.Entity<Transaction>()
                 .Property(t => t.Amount)
                 .HasPrecision(18, 2);
+
+            // Watchlist configuration - ensure unique constraint (one user can't watch same auction twice)
+            modelBuilder.Entity<Watchlist>()
+                .HasIndex(w => new { w.UserId, w.AuctionId })
+                .IsUnique();
+
+            // Prevent cascade delete conflicts - when user is deleted, remove watchlist entries
+            modelBuilder.Entity<Watchlist>()
+                .HasOne(w => w.User)
+                .WithMany()
+                .HasForeignKey(w => w.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // When auction is deleted, remove watchlist entries (no action to avoid conflict)
+            modelBuilder.Entity<Watchlist>()
+                .HasOne(w => w.Auction)
+                .WithMany()
+                .HasForeignKey(w => w.AuctionId)
+                .OnDelete(DeleteBehavior.NoAction);
 
             base.OnModelCreating(modelBuilder);
         }

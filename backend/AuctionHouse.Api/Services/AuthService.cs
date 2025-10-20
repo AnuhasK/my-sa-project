@@ -64,7 +64,15 @@ namespace AuctionHouse.Api.Services
             };
 
             var creds = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);
-            var expires = DateTime.UtcNow.AddMinutes(double.Parse(jwt["ExpiresMinutes"] ?? "60"));
+            
+            // Safe parsing of expiry minutes with fallback
+            var expiresMinutes = 60.0; // default 1 hour
+            if (double.TryParse(jwt["ExpiresMinutes"], out var configuredMinutes))
+            {
+                expiresMinutes = configuredMinutes;
+            }
+            
+            var expires = DateTime.UtcNow.AddMinutes(expiresMinutes);
 
             var token = new JwtSecurityToken(jwt["Issuer"], jwt["Audience"], claims, expires: expires, signingCredentials: creds);
             return new JwtSecurityTokenHandler().WriteToken(token);

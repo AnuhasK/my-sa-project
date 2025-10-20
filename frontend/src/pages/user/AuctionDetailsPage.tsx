@@ -22,6 +22,60 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage }: AuctionDetails
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bidHistory, setBidHistory] = useState<any[]>([]);
+  const [watchersCount, setWatchersCount] = useState(0);
+
+  // Check if auction is in watchlist when component loads
+  useEffect(() => {
+    const checkWatchlistStatus = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        if (token && auctionId) {
+          const response = await api.checkWatchlist(auctionId, token);
+          setIsWatching(response.isInWatchlist);
+        }
+      } catch (error) {
+        console.error('Error checking watchlist status:', error);
+      }
+    };
+
+    const fetchWatchersCount = async () => {
+      try {
+        if (auctionId) {
+          const response = await api.getWatchersCount(auctionId);
+          setWatchersCount(response.watchersCount);
+        }
+      } catch (error) {
+        console.error('Error fetching watchers count:', error);
+      }
+    };
+
+    checkWatchlistStatus();
+    fetchWatchersCount();
+  }, [auctionId]);
+
+  // Handle watchlist toggle
+  const handleWatchlistToggle = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        alert('Please login to add items to your watchlist');
+        return;
+      }
+
+      if (isWatching) {
+        await api.removeFromWatchlist(auctionId, token);
+        setIsWatching(false);
+        setWatchersCount(prev => Math.max(0, prev - 1));
+      } else {
+        await api.addToWatchlist(auctionId, token);
+        setIsWatching(true);
+        setWatchersCount(prev => prev + 1);
+      }
+    } catch (error) {
+      console.error('Error toggling watchlist:', error);
+      alert('Failed to update watchlist. Please try again.');
+    }
+  };
 
   // Fetch auction details from backend
   useEffect(() => {
@@ -174,8 +228,9 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage }: AuctionDetails
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => setIsWatching(!isWatching)}
+                    onClick={handleWatchlistToggle}
                     className={`${isWatching ? 'bg-red-100 text-red-700' : 'bg-white/90'}`}
+                    title={isWatching ? 'Remove from watchlist' : 'Add to watchlist'}
                   >
                     <Heart className={`w-4 h-4 ${isWatching ? 'fill-current' : ''}`} />
                   </Button>
@@ -283,7 +338,7 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage }: AuctionDetails
                     </div>
                     <div className="flex items-center space-x-1">
                       <Heart className="w-4 h-4" />
-                      <span>{auction.watchers} watching</span>
+                      <span>{watchersCount} watching</span>
                     </div>
                   </div>
                 </div>

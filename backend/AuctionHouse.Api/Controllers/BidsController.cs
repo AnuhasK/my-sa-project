@@ -23,7 +23,12 @@ namespace AuctionHouse.Api.Controllers
         {
             try
             {
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+                {
+                    return Unauthorized(new { message = "Invalid authentication token" });
+                }
+                
                 var bid = await _bidSvc.PlaceBidAsync(userId, dto.AuctionId, dto.Amount);
 
                 // broadcast to group

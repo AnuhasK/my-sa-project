@@ -236,7 +236,17 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage, isAdmin = false 
     try {
       if (!dateString) return 'Just now';
       
-      const date = new Date(dateString);
+      // Ensure the date string is treated as UTC if it doesn't have timezone info
+      let normalizedDateString = dateString;
+      if (!dateString.endsWith('Z') && !dateString.includes('+') && !dateString.includes('T')) {
+        // If it's just a date without timezone, assume UTC
+        normalizedDateString = dateString + 'Z';
+      } else if (dateString.includes('T') && !dateString.endsWith('Z') && !dateString.includes('+') && !dateString.includes('-', 10)) {
+        // If it has T but no timezone indicator, add Z
+        normalizedDateString = dateString + 'Z';
+      }
+      
+      const date = new Date(normalizedDateString);
       if (isNaN(date.getTime())) return 'Just now';
       
       const now = new Date();

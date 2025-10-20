@@ -51,6 +51,41 @@ namespace AuctionHouse.Api.Services
             return new AuthResponseDto { UserId = user.Id, Username = user.Username, Token = token };
         }
 
+        public async Task<UserProfileDto?> GetCurrentUserAsync(int userId)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null) return null;
+
+            return new UserProfileDto
+            {
+                Id = user.Id,
+                Username = user.Username,
+                Email = user.Email,
+                Role = user.Role
+            };
+        }
+
+        public async Task LogoutAsync(string token, int userId)
+        {
+            // Decode token to get expiration time
+            var handler = new JwtSecurityTokenHandler();
+            var jwtToken = handler.ReadJwtToken(token);
+            var expiresAt = jwtToken.ValidTo;
+
+            // Add token to revoked tokens table
+            var revokedToken = new RevokedToken
+            {
+                Token = token,
+                RevokedAt = DateTime.UtcNow,
+                ExpiresAt = expiresAt,
+                UserId = userId,
+                Reason = "User logout"
+            };
+
+            _db.RevokedTokens.Add(revokedToken);
+            await _db.SaveChangesAsync();
+        }
+
         private string GenerateJwtToken(User user)
         {
             var jwt = _config.GetSection("Jwt");

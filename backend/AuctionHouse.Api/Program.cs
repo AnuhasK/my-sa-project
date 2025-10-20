@@ -1,5 +1,6 @@
 using AuctionHouse.Api.Data;
 using AuctionHouse.Api.Hubs;
+using AuctionHouse.Api.Middleware;
 using AuctionHouse.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -129,6 +130,7 @@ app.UseCors("AllowReactApp");
 app.UseStaticFiles();
 
 app.UseAuthentication();
+app.UseTokenRevocation(); // Check for revoked tokens after authentication
 app.UseAuthorization();
 
 app.MapControllers();

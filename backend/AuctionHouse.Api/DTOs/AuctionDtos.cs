@@ -10,6 +10,14 @@ namespace AuctionHouse.Api.DTOs
         public int CategoryId { get; set; }
     }
 
+    public class AuctionUpdateDto
+    {
+        public string Title { get; set; } = null!;
+        public string Description { get; set; } = null!;
+        public DateTime EndTime { get; set; }
+        public int CategoryId { get; set; }
+    }
+
     public class AuctionResponseDto
     {
         public int Id { get; set; }

@@ -9,5 +9,8 @@ namespace AuctionHouse.Api.Services
         Task<AuctionResponseDto?> GetByIdAsync(int id);
         Task<Auction> CreateAsync(int sellerId, AuctionCreateDto dto);
         Task CloseAuctionAsync(int id);
+        Task<AuctionResponseDto?> UpdateAsync(int id, AuctionUpdateDto dto, int userId, bool isAdmin);
+        Task<bool> DeleteAsync(int id, int userId, bool isAdmin);
+        Task<IEnumerable<AuctionListDto>> GetUserAuctionsAsync(int userId);
     }
 }

@@ -1,0 +1,250 @@
+### Phase 1.1: Test Auction CRUD Endpoints
+### Backend: http://localhost:5021
+
+### ============================================
+### STEP 1: Get Authentication Tokens
+### ============================================
+
+### Login as Seller (default seeded user)
+# @name loginSeller
+POST http://localhost:5021/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "seller@test.com",
+  "password": "Test123!"
+}
+
+###
+
+### Login as Buyer
+# @name loginBuyer
+POST http://localhost:5021/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "buyer@test.com",
+  "password": "Test123!"
+}
+
+###
+
+### Login as Admin
+# @name loginAdmin
+POST http://localhost:5021/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@auctionhouse.com",
+  "password": "Admin123!"
+}
+
+###
+
+### ============================================
+### STEP 2: Create Test Auctions
+### ============================================
+
+### Create test auction (as seller) - NO BIDS
+# @name createAuction1
+POST http://localhost:5021/api/auctions
+Authorization: Bearer {{loginSeller.response.body.token}}
+Content-Type: application/json
+
+{
+  "title": "Test Vintage Camera - Phase 1.1 Testing",
+  "description": "A beautiful vintage camera for testing CRUD operations",
+  "startPrice": 50.00,
+  "startTime": "2025-10-20T10:00:00Z",
+  "endTime": "2025-10-27T18:00:00Z",
+  "categoryId": 1
+}
+
+###
+
+### Create another auction for deletion test
+# @name createAuction2
+POST http://localhost:5021/api/auctions
+Authorization: Bearer {{loginSeller.response.body.token}}
+Content-Type: application/json
+
+{
+  "title": "Test Auction for Deletion",
+  "description": "This auction will be deleted",
+  "startPrice": 25.00,
+  "startTime": "2025-10-20T10:00:00Z",
+  "endTime": "2025-10-27T18:00:00Z",
+  "categoryId": 1
+}
+
+###
+
+### ============================================
+### STEP 3: Test UPDATE Endpoint
+### ============================================
+
+### Test 3a: Update as Owner (SHOULD SUCCEED) ✅
+PUT http://localhost:5021/api/auctions/{{createAuction1.response.body.id}}
+Authorization: Bearer {{loginSeller.response.body.token}}
+Content-Type: application/json
+
+{
+  "title": "Updated Vintage Camera - Now with Leather Case",
+  "description": "Updated: Includes original leather case in excellent condition",
+  "endTime": "2025-10-28T18:00:00Z",
+  "categoryId": 1
+}
+
+###
+
+### Test 3b: Update as Different User (SHOULD FAIL) ❌ 403 Forbidden
+PUT http://localhost:5021/api/auctions/{{createAuction1.response.body.id}}
+Authorization: Bearer {{loginBuyer.response.body.token}}
+Content-Type: application/json
+
+{
+  "title": "Hacked Title - This Should Fail",
+  "description": "Non-owner trying to update",
+  "endTime": "2025-10-28T18:00:00Z",
+  "categoryId": 1
+}
+
+###
+
+### Test 3c: Update as Admin (SHOULD SUCCEED) ✅
+PUT http://localhost:5021/api/auctions/{{createAuction1.response.body.id}}
+Authorization: Bearer {{loginAdmin.response.body.token}}
+Content-Type: application/json
+
+{
+  "title": "Admin Moderated Title",
+  "description": "Admin can update any auction",
+  "endTime": "2025-10-28T18:00:00Z",
+  "categoryId": 1
+}
+
+###
+
+### Test 3d: Update without Auth (SHOULD FAIL) ❌ 401 Unauthorized
+PUT http://localhost:5021/api/auctions/{{createAuction1.response.body.id}}
+Content-Type: application/json
+
+{
+  "title": "No Auth Update",
+  "description": "Should fail",
+  "endTime": "2025-10-28T18:00:00Z",
+  "categoryId": 1
+}
+
+###
+
+### ============================================
+### STEP 4: Test UPDATE with Bids (Should Fail)
+### ============================================
+
+### Place a bid on auction 1
+# @name placeBid
+POST http://localhost:5021/api/bids
+Authorization: Bearer {{loginBuyer.response.body.token}}
+Content-Type: application/json
+
+{
+  "auctionId": {{createAuction1.response.body.id}},
+  "amount": 60.00
+}
+
+###
+
+### Try to update auction with bids (SHOULD FAIL) ❌ 400 Bad Request
+PUT http://localhost:5021/api/auctions/{{createAuction1.response.body.id}}
+Authorization: Bearer {{loginSeller.response.body.token}}
+Content-Type: application/json
+
+{
+  "title": "Cannot Update - Has Bids",
+  "description": "This should fail because auction has bids",
+  "endTime": "2025-10-28T18:00:00Z",
+  "categoryId": 1
+}
+
+###
+
+### ============================================
+### STEP 5: Test DELETE Endpoint
+### ============================================
+
+### Test 5a: Delete as Owner (NO BIDS) (SHOULD SUCCEED) ✅
+DELETE http://localhost:5021/api/auctions/{{createAuction2.response.body.id}}
+Authorization: Bearer {{loginSeller.response.body.token}}
+
+###
+
+### Test 5b: Verify auction is soft-deleted (status = "Deleted")
+GET http://localhost:5021/api/auctions/{{createAuction2.response.body.id}}
+
+###
+
+### Test 5c: Try to delete auction with bids (SHOULD FAIL) ❌ 400 Bad Request
+DELETE http://localhost:5021/api/auctions/{{createAuction1.response.body.id}}
+Authorization: Bearer {{loginSeller.response.body.token}}
+
+###
+
+### Test 5d: Try to delete as non-owner (SHOULD FAIL) ❌ 403 Forbidden
+### First create auction as buyer
+# @name createAuctionBuyer
+POST http://localhost:5021/api/auctions
+Authorization: Bearer {{loginBuyer.response.body.token}}
+Content-Type: application/json
+
+{
+  "title": "Buyer's Auction",
+  "description": "Created by buyer",
+  "startPrice": 30.00,
+  "startTime": "2025-10-20T10:00:00Z",
+  "endTime": "2025-10-27T18:00:00Z",
+  "categoryId": 1
+}
+
+###
+
+### Try to delete buyer's auction as seller (SHOULD FAIL) ❌
+DELETE http://localhost:5021/api/auctions/{{createAuctionBuyer.response.body.id}}
+Authorization: Bearer {{loginSeller.response.body.token}}
+
+###
+
+### Test 5e: Delete without auth (SHOULD FAIL) ❌ 401 Unauthorized
+DELETE http://localhost:5021/api/auctions/{{createAuctionBuyer.response.body.id}}
+
+###
+
+### ============================================
+### STEP 6: Test GET MY AUCTIONS Endpoint
+### ============================================
+
+### Test 6a: Get Seller's Auctions (SHOULD SUCCEED) ✅
+GET http://localhost:5021/api/auctions/my-auctions
+Authorization: Bearer {{loginSeller.response.body.token}}
+
+###
+
+### Test 6b: Get Buyer's Auctions (SHOULD SUCCEED) ✅
+GET http://localhost:5021/api/auctions/my-auctions
+Authorization: Bearer {{loginBuyer.response.body.token}}
+
+###
+
+### Test 6c: Get without Auth (SHOULD FAIL) ❌ 401 Unauthorized
+GET http://localhost:5021/api/auctions/my-auctions
+
+###
+
+### ============================================
+### VERIFICATION: Get All Auctions
+### ============================================
+
+### Get all auctions (verify deleted ones don't show)
+GET http://localhost:5021/api/auctions
+
+###

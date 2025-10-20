@@ -10,6 +10,8 @@ namespace AuctionHouse.Api.Services
         Task<bool> SuspendUserAsync(int userId, string reason);
         Task<bool> ActivateUserAsync(int userId);
         Task<bool> DeleteUserAsync(int userId);
+        Task<int> CreateUserAsync(CreateUserDto dto);
+        Task<bool> UpdateUserRoleAsync(int userId, string role);
         Task<IEnumerable<AuctionListDto>> GetFlaggedAuctionsAsync();
         Task<bool> RemoveAuctionAsync(int auctionId, string reason);
     }

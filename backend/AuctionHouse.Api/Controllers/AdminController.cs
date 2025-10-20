@@ -155,6 +155,54 @@ namespace AuctionHouse.Api.Controllers
         }
 
         /// <summary>
+        /// Create a new user
+        /// </summary>
+        [HttpPost("users")]
+        public async Task<IActionResult> CreateUser([FromBody] CreateUserDto dto)
+        {
+            try
+            {
+                var userId = await _adminService.CreateUserAsync(dto);
+                
+                if (userId == 0)
+                {
+                    return BadRequest(new { message = "Failed to create user. Username or email may already exist." });
+                }
+
+                return Ok(new { message = "User created successfully", userId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating user");
+                return StatusCode(500, new { message = "Error creating user" });
+            }
+        }
+
+        /// <summary>
+        /// Update user role
+        /// </summary>
+        [HttpPut("users/{id}/role")]
+        public async Task<IActionResult> UpdateUserRole(int id, [FromBody] UpdateRoleDto dto)
+        {
+            try
+            {
+                var success = await _adminService.UpdateUserRoleAsync(id, dto.Role);
+                
+                if (!success)
+                {
+                    return NotFound(new { message = "User not found" });
+                }
+
+                return Ok(new { message = "User role updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error updating role for user {id}");
+                return StatusCode(500, new { message = "Error updating user role" });
+            }
+        }
+
+        /// <summary>
         /// Get flagged auctions
         /// </summary>
         [HttpGet("auctions/flagged")]

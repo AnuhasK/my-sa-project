@@ -205,12 +205,62 @@ namespace AuctionHouse.Api.Services
             var user = await _db.Users.FindAsync(userId);
             if (user == null) return false;
 
-            // Soft delete
-            user.DeletedAt = DateTime.UtcNow;
-            user.IsActive = false;
+            // Hard delete - permanently remove from database
+            _db.Users.Remove(user);
             await _db.SaveChangesAsync();
 
-            _logger.LogInformation($"User {userId} soft deleted");
+            _logger.LogInformation($"User {userId} permanently deleted");
+
+            return true;
+        }
+
+        public async Task<int> CreateUserAsync(CreateUserDto dto)
+        {
+            // Check if username or email already exists
+            var existingUser = await _db.Users
+                .FirstOrDefaultAsync(u => u.Username == dto.Username || u.Email == dto.Email);
+            
+            if (existingUser != null)
+            {
+                return 0; // User already exists
+            }
+
+            // Hash the password
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+
+            var user = new User
+            {
+                Username = dto.Username,
+                Email = dto.Email,
+                PasswordHash = passwordHash,
+                Role = dto.Role,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _db.Users.Add(user);
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation($"User {user.Id} created by admin");
+
+            return user.Id;
+        }
+
+        public async Task<bool> UpdateUserRoleAsync(int userId, string role)
+        {
+            var user = await _db.Users.FindAsync(userId);
+            if (user == null) return false;
+
+            // Validate role - only "User" or "Admin" allowed
+            if (role != "Admin" && role != "User")
+            {
+                return false;
+            }
+
+            user.Role = role;
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation($"User {userId} role updated to {role}");
 
             return true;
         }

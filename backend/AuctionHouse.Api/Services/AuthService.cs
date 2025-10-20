@@ -31,7 +31,7 @@ namespace AuctionHouse.Api.Services
                 Username = dto.Username,
                 Email = dto.Email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                Role = dto.Role ?? "Buyer"
+                Role = dto.Role ?? "User" // Default to "User" role
             };
 
             _db.Users.Add(user);

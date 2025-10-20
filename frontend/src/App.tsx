@@ -10,6 +10,7 @@ import { AdminSidebar } from './pages/admin/AdminSidebar';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { UserManagement } from './pages/admin/UserManagement';
 import { AuctionManagement } from './pages/admin/AuctionManagement';
+import { AdminCreateAuction } from './pages/admin/AdminCreateAuction';
 import { Reports } from './pages/admin/Reports';
 import { NotificationCenter } from './pages/admin/NotificationCenter';
 import { AdminSettings } from './pages/admin/AdminSettings';
@@ -131,7 +132,11 @@ function AppContent() {
           <AuthForms mode="login" setCurrentPage={setCurrentPage} />
         );
       case 'admin-auctions':
-        return isAdmin ? <AuctionManagement /> : (
+        return isAdmin ? <AuctionManagement setCurrentPage={setCurrentPage} /> : (
+          <AuthForms mode="login" setCurrentPage={setCurrentPage} />
+        );
+      case 'admin-create-auction':
+        return isAdmin ? <AdminCreateAuction setCurrentPage={setCurrentPage} /> : (
           <AuthForms mode="login" setCurrentPage={setCurrentPage} />
         );
       case 'admin-reports':

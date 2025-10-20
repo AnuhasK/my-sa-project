@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Filter, MoreHorizontal, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-react';
+import { Search, Filter, MoreHorizontal, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, AlertTriangle, Plus } from 'lucide-react';
 import { Button } from '../../components/button';
 import { Input } from '../../components/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/card';
@@ -9,7 +9,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/tabs';
 
-export function AuctionManagement() {
+interface AuctionManagementProps {
+  setCurrentPage?: (page: string) => void;
+}
+
+export function AuctionManagement({ setCurrentPage }: AuctionManagementProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -177,7 +181,11 @@ export function AuctionManagement() {
           <h1 className="text-2xl font-semibold text-gray-900">Auction Management</h1>
           <p className="text-gray-600 mt-1">Monitor and manage all auction listings</p>
         </div>
-        <Button className="bg-black text-white hover:bg-gray-800">
+        <Button 
+          className="bg-black text-white hover:bg-gray-800"
+          onClick={() => setCurrentPage?.('admin-create-auction')}
+        >
+          <Plus className="w-4 h-4 mr-2" />
           Create New Auction
         </Button>
       </div>

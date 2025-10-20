@@ -29,7 +29,7 @@ namespace AuctionHouse.Api.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id) => Ok(await _svc.GetByIdAsync(id));
 
-        [Authorize(Roles = "Seller,Admin")]
+        [Authorize(Roles = "Admin")] // Only admins can create auctions
         [HttpPost]
         public async Task<IActionResult> Create(AuctionCreateDto dto)
         {

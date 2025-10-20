@@ -9,55 +9,103 @@ import {
   CheckCircle,
   ArrowUpRight,
   ArrowDownRight,
-  HelpCircle
+  HelpCircle,
+  Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/card';
 import { Button } from '../../components/button';
 import { Badge } from '../../components/badge';
+import { useEffect, useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { adminApi } from '../../services/adminApi';
 
 interface AdminDashboardProps {
   setCurrentPage: (page: string) => void;
 }
 
+interface DashboardStats {
+  totalUsers: number;
+  activeUsers: number;
+  totalAuctions: number;
+  activeAuctions: number;
+  totalRevenue: number;
+  pendingApprovals: number;
+  flaggedAuctions: number;
+  recentTransactions: number;
+}
+
 export function AdminDashboard({ setCurrentPage }: AdminDashboardProps) {
-  const stats = [
-    {
-      title: 'Total Users',
-      value: '12,847',
-      change: '+12.5%',
-      changeType: 'positive' as const,
-      icon: Users,
-      color: 'bg-blue-100',
-      iconColor: 'text-blue-600'
-    },
-    {
-      title: 'Active Auctions',
-      value: '347',
-      change: '+8.2%',
-      changeType: 'positive' as const,
-      icon: Gavel,
-      color: 'bg-green-100',
-      iconColor: 'text-green-600'
-    },
-    {
-      title: 'Monthly Revenue',
-      value: '$89,432',
-      change: '+15.3%',
-      changeType: 'positive' as const,
-      icon: DollarSign,
-      color: 'bg-purple-100',
-      iconColor: 'text-purple-600'
-    },
-    {
-      title: 'Platform Growth',
-      value: '23.4%',
-      change: '-2.1%',
-      changeType: 'negative' as const,
-      icon: TrendingUp,
-      color: 'bg-orange-100',
-      iconColor: 'text-orange-600'
-    }
-  ];
+  const { token } = useAuth();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      if (!token) return;
+      
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await adminApi.getDashboardStats(token);
+        setStats(data as DashboardStats);
+      } catch (err: any) {
+        console.error('Error fetching dashboard stats:', err);
+        setError(err.message || 'Failed to load dashboard statistics');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardStats();
+  }, [token]);
+
+  const getDisplayStats = () => {
+    if (!stats) return [];
+    
+    return [
+      {
+        title: 'Total Users',
+        value: stats.totalUsers.toLocaleString(),
+        change: '+12.5%',
+        changeType: 'positive' as const,
+        icon: Users,
+        color: 'bg-blue-100',
+        iconColor: 'text-blue-600',
+        subtitle: `${stats.activeUsers} active`
+      },
+      {
+        title: 'Active Auctions',
+        value: stats.activeAuctions.toString(),
+        change: '+8.2%',
+        changeType: 'positive' as const,
+        icon: Gavel,
+        color: 'bg-green-100',
+        iconColor: 'text-green-600',
+        subtitle: `${stats.totalAuctions} total`
+      },
+      {
+        title: 'Total Revenue',
+        value: `$${stats.totalRevenue.toLocaleString()}`,
+        change: '+15.3%',
+        changeType: 'positive' as const,
+        icon: DollarSign,
+        color: 'bg-purple-100',
+        iconColor: 'text-purple-600',
+        subtitle: `${stats.recentTransactions} transactions`
+      },
+      {
+        title: 'Pending Actions',
+        value: (stats.pendingApprovals + stats.flaggedAuctions).toString(),
+        change: stats.flaggedAuctions > 0 ? `${stats.flaggedAuctions} flagged` : 'All clear',
+        changeType: stats.flaggedAuctions > 0 ? 'negative' as const : 'positive' as const,
+        icon: AlertTriangle,
+        color: 'bg-orange-100',
+        iconColor: 'text-orange-600',
+        subtitle: `${stats.pendingApprovals} approvals`
+      }
+    ];
+  };
 
   const recentAuctions = [
     {
@@ -169,42 +217,79 @@ export function AdminDashboard({ setCurrentPage }: AdminDashboardProps) {
         </div>
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+          <span className="ml-3 text-gray-600">Loading dashboard statistics...</span>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-3">
+              <AlertTriangle className="w-6 h-6 text-red-600" />
+              <div>
+                <h3 className="font-semibold text-red-900">Error Loading Dashboard</h3>
+                <p className="text-sm text-red-700 mt-1">{error}</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => window.location.reload()}
+                  className="mt-3 border-red-300 text-red-700 hover:bg-red-100"
+                >
+                  Retry
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={index}>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">{stat.title}</p>
-                    <p className="text-2xl font-semibold text-gray-900">{stat.value}</p>
-                    <div className="flex items-center mt-2">
-                      {stat.changeType === 'positive' ? (
-                        <ArrowUpRight className="w-4 h-4 text-green-600" />
-                      ) : (
-                        <ArrowDownRight className="w-4 h-4 text-red-600" />
+      {!loading && !error && stats && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {getDisplayStats().map((stat, index) => {
+            const Icon = stat.icon;
+            return (
+              <Card key={index}>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">{stat.title}</p>
+                      <p className="text-2xl font-semibold text-gray-900">{stat.value}</p>
+                      <div className="flex items-center mt-2">
+                        {stat.changeType === 'positive' ? (
+                          <ArrowUpRight className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <ArrowDownRight className="w-4 h-4 text-red-600" />
+                        )}
+                        <span className={`text-sm ml-1 ${
+                          stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {stat.change}
+                        </span>
+                      </div>
+                      {stat.subtitle && (
+                        <p className="text-xs text-gray-500 mt-1">{stat.subtitle}</p>
                       )}
-                      <span className={`text-sm ml-1 ${
-                        stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {stat.change}
-                      </span>
-                      <span className="text-sm text-gray-500 ml-1">vs last month</span>
+                    </div>
+                    <div className={`w-12 h-12 rounded-lg ${stat.color} flex items-center justify-center`}>
+                      <Icon className={`w-6 h-6 ${stat.iconColor}`} />
                     </div>
                   </div>
-                  <div className={`w-12 h-12 rounded-lg ${stat.color} flex items-center justify-center`}>
-                    <Icon className={`w-6 h-6 ${stat.iconColor}`} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {!loading && !error && stats && (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Auctions */}
         <Card>
           <CardHeader>
@@ -318,6 +403,8 @@ export function AdminDashboard({ setCurrentPage }: AdminDashboardProps) {
           </div>
         </CardContent>
       </Card>
+        </>
+      )}
     </div>
   );
 }

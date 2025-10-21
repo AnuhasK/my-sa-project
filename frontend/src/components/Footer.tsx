@@ -35,22 +35,9 @@ export function Footer() {
             <h3 className="font-medium text-white">Quick Links</h3>
             <ul className="space-y-2 text-sm">
               <li><a href="#" className="text-gray-400 hover:text-white transition-colors">How It Works</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Seller Guide</a></li>
               <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Buyer Guide</a></li>
               <li><a href="#" className="text-gray-400 hover:text-white transition-colors">FAQ</a></li>
               <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Support</a></li>
-            </ul>
-          </div>
-
-          {/* Categories */}
-          <div className="space-y-4">
-            <h3 className="font-medium text-white">Categories</h3>
-            <ul className="space-y-2 text-sm">
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Art & Collectibles</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Jewelry & Watches</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Antiques</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Electronics</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Furniture</a></li>
             </ul>
           </div>
 
@@ -64,11 +51,11 @@ export function Footer() {
               </div>
               <div className="flex items-center space-x-3">
                 <Phone className="w-4 h-4 text-gray-400" />
-                <span className="text-gray-400">+1 (555) 123-4567</span>
+                <span className="text-gray-400">+94 77 459 2525</span>
               </div>
               <div className="flex items-center space-x-3">
                 <MapPin className="w-4 h-4 text-gray-400" />
-                <span className="text-gray-400">123 Auction St, NY 10001</span>
+                <span className="text-gray-400">NSBM Green University, Homagama, Sri Lanka</span>
               </div>
             </div>
           </div>
@@ -78,7 +65,7 @@ export function Footer() {
         <div className="mt-12 pt-8 border-t border-gray-800">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <p className="text-gray-400 text-sm">
-              © 2025 AuctionHouse. All rights reserved.
+              © 2025 AuctionHouse. All rights reserved. Created by Group 14.
             </p>
             <div className="flex space-x-6 text-sm">
               <a href="#" className="text-gray-400 hover:text-white transition-colors">Privacy Policy</a>

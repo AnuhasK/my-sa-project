@@ -7,6 +7,7 @@ namespace AuctionHouse.Api.Models
         AuctionEnding,      // "Auction ending soon (1 hour warning)"
         AuctionWon,         // "Congratulations! You won the auction"
         AuctionLost,        // "Auction ended - you didn't win"
+        AuctionEnded,       // "Auction ended (for admin notification)"
         TransactionCreated, // "Payment required for won auction"
         TransactionPaid,    // "Payment received/confirmed"
         AuctionCreated,     // "Your auction is now live"

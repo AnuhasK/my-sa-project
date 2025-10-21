@@ -55,7 +55,8 @@ namespace AuctionHouse.Api.Services
                     AuctionId = auctionId,
                     BuyerId = buyerId,
                     Amount = amount,
-                    PaymentStatus = "Pending",
+                    PaymentStatus = PaymentStatus.Pending,
+                    OrderDate = DateTime.UtcNow,
                     CreatedAt = DateTime.UtcNow
                 };
 
@@ -75,7 +76,7 @@ namespace AuctionHouse.Api.Services
                     SellerUsername = auction.Seller.Username,
                     SellerEmail = auction.Seller.Email,
                     Amount = transaction.Amount,
-                    PaymentStatus = transaction.PaymentStatus,
+                    PaymentStatus = transaction.PaymentStatus.ToString(),
                     CreatedAt = transaction.CreatedAt
                 };
 
@@ -120,7 +121,7 @@ namespace AuctionHouse.Api.Services
                     SellerUsername = transaction.Auction.Seller.Username,
                     SellerEmail = transaction.Auction.Seller.Email,
                     Amount = transaction.Amount,
-                    PaymentStatus = transaction.PaymentStatus,
+                    PaymentStatus = transaction.PaymentStatus.ToString(),
                     CreatedAt = transaction.CreatedAt
                 };
 
@@ -139,6 +140,8 @@ namespace AuctionHouse.Api.Services
                 var transactions = await _db.Transactions
                     .Include(t => t.Auction)
                         .ThenInclude(a => a.Seller)
+                    .Include(t => t.Auction)
+                        .ThenInclude(a => a.Images)
                     .Where(t => t.BuyerId == buyerId)
                     .OrderByDescending(t => t.CreatedAt)
                     .Select(t => new TransactionListDto
@@ -146,9 +149,12 @@ namespace AuctionHouse.Api.Services
                         Id = t.Id,
                         AuctionId = t.AuctionId,
                         AuctionTitle = t.Auction.Title,
+                        AuctionImageUrl = t.Auction.Images.OrderBy(i => i.DisplayOrder).FirstOrDefault() != null 
+                            ? t.Auction.Images.OrderBy(i => i.DisplayOrder).FirstOrDefault()!.Url 
+                            : null,
                         OtherPartyUsername = t.Auction.Seller.Username, // Seller is the other party for buyer
                         Amount = t.Amount,
-                        PaymentStatus = t.PaymentStatus,
+                        PaymentStatus = t.PaymentStatus.ToString(),
                         CreatedAt = t.CreatedAt
                     })
                     .ToListAsync();
@@ -167,6 +173,7 @@ namespace AuctionHouse.Api.Services
             {
                 var transactions = await _db.Transactions
                     .Include(t => t.Auction)
+                        .ThenInclude(a => a.Images)
                     .Include(t => t.Buyer)
                     .Where(t => t.Auction.SellerId == sellerId)
                     .OrderByDescending(t => t.CreatedAt)
@@ -175,9 +182,12 @@ namespace AuctionHouse.Api.Services
                         Id = t.Id,
                         AuctionId = t.AuctionId,
                         AuctionTitle = t.Auction.Title,
+                        AuctionImageUrl = t.Auction.Images.OrderBy(i => i.DisplayOrder).FirstOrDefault() != null 
+                            ? t.Auction.Images.OrderBy(i => i.DisplayOrder).FirstOrDefault()!.Url 
+                            : null,
                         OtherPartyUsername = t.Buyer.Username, // Buyer is the other party for seller
                         Amount = t.Amount,
-                        PaymentStatus = t.PaymentStatus,
+                        PaymentStatus = t.PaymentStatus.ToString(),
                         CreatedAt = t.CreatedAt
                     })
                     .ToListAsync();
@@ -194,11 +204,11 @@ namespace AuctionHouse.Api.Services
         {
             try
             {
-                // Validate payment status
-                var validStatuses = new[] { "Pending", "Paid", "Failed", "Refunded" };
-                if (!validStatuses.Contains(paymentStatus))
+                // Parse payment status string to enum
+                if (!Enum.TryParse<PaymentStatus>(paymentStatus, true, out var status))
                 {
-                    return ServiceResult.Failure($"Invalid payment status. Must be one of: {string.Join(", ", validStatuses)}");
+                    var validStatuses = string.Join(", ", Enum.GetNames(typeof(PaymentStatus)));
+                    return ServiceResult.Failure($"Invalid payment status. Must be one of: {validStatuses}");
                 }
 
                 var transaction = await _db.Transactions
@@ -216,7 +226,23 @@ namespace AuctionHouse.Api.Services
                     return ServiceResult.Failure("Unauthorized to update this transaction");
                 }
 
-                transaction.PaymentStatus = paymentStatus;
+                transaction.PaymentStatus = status;
+                transaction.UpdatedAt = DateTime.UtcNow;
+                
+                // Update status-specific dates
+                switch (status)
+                {
+                    case PaymentStatus.Paid:
+                        transaction.PaidDate = DateTime.UtcNow;
+                        break;
+                    case PaymentStatus.Shipped:
+                        transaction.ShippedDate = DateTime.UtcNow;
+                        break;
+                    case PaymentStatus.Completed:
+                        transaction.CompletedDate = DateTime.UtcNow;
+                        break;
+                }
+                
                 await _db.SaveChangesAsync();
 
                 return ServiceResult.Success();

@@ -28,7 +28,7 @@ namespace AuctionHouse.Api.Services
                 ActiveAuctions = await _db.Auctions.CountAsync(a => a.Status == "Open"),
                 TotalBids = await _db.Bids.CountAsync(),
                 TotalTransactions = await _db.Transactions.CountAsync(),
-                TotalRevenue = await _db.Transactions.Where(t => t.PaymentStatus == "Paid").SumAsync(t => (decimal?)t.Amount) ?? 0,
+                TotalRevenue = await _db.Transactions.Where(t => t.PaymentStatus == PaymentStatus.Paid).SumAsync(t => (decimal?)t.Amount) ?? 0,
                 NewUsersToday = await _db.Users.CountAsync(u => u.CreatedAt >= today),
                 NewAuctionsToday = await _db.Auctions.CountAsync(a => a.CreatedAt >= today),
                 AverageAuctionPrice = await _db.Auctions.AverageAsync(a => (decimal?)a.CurrentPrice) ?? 0
@@ -94,7 +94,7 @@ namespace AuctionHouse.Api.Services
                     IsActive = u.IsActive,
                     AuctionsCreated = _db.Auctions.Count(a => a.SellerId == u.Id),
                     BidsPlaced = _db.Bids.Count(b => b.BidderId == u.Id),
-                    AuctionsWon = _db.Transactions.Count(t => t.BuyerId == u.Id && t.PaymentStatus == "Paid")
+                    AuctionsWon = _db.Transactions.Count(t => t.BuyerId == u.Id && t.PaymentStatus == PaymentStatus.Paid)
                 })
                 .ToListAsync();
 
@@ -116,7 +116,7 @@ namespace AuctionHouse.Api.Services
                 IsActive = user.IsActive,
                 AuctionsCreated = await _db.Auctions.CountAsync(a => a.SellerId == userId),
                 BidsPlaced = await _db.Bids.CountAsync(b => b.BidderId == userId),
-                AuctionsWon = await _db.Transactions.CountAsync(t => t.BuyerId == userId && t.PaymentStatus == "Paid")
+                AuctionsWon = await _db.Transactions.CountAsync(t => t.BuyerId == userId && t.PaymentStatus == PaymentStatus.Paid)
             };
 
             // Get recent auctions
@@ -166,7 +166,7 @@ namespace AuctionHouse.Api.Services
                     AuctionTitle = t.Auction.Title,
                     BuyerId = t.BuyerId,
                     Amount = t.Amount,
-                    PaymentStatus = t.PaymentStatus,
+                    PaymentStatus = t.PaymentStatus.ToString(),
                     CreatedAt = t.CreatedAt
                 })
                 .ToListAsync();

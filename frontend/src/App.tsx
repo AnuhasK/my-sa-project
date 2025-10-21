@@ -8,6 +8,7 @@ import { AuthForms } from './pages/public/AuthForms';
 import { UserDashboard } from './pages/user/UserDashboard';
 import { UserProfile } from './pages/user/UserProfile';
 import { WatchlistPage } from './pages/user/WatchlistPage';
+import { WonAuctionsPage } from './pages/user/WonAuctionsPage';
 import { AdminSidebar } from './pages/admin/AdminSidebar';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { UserManagement } from './pages/admin/UserManagement';
@@ -116,6 +117,19 @@ function AppContent() {
       case 'watchlist':
         return isAuthenticated ? (
           <WatchlistPage 
+            setCurrentPage={setCurrentPage}
+            setSelectedAuction={setSelectedAuction}
+          />
+        ) : (
+          <AuthForms 
+            mode="login"
+            setCurrentPage={setCurrentPage}
+          />
+        );
+      case 'won-auctions':
+      case 'my-purchases':
+        return isAuthenticated ? (
+          <WonAuctionsPage 
             setCurrentPage={setCurrentPage}
             setSelectedAuction={setSelectedAuction}
           />

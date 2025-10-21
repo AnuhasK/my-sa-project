@@ -80,7 +80,8 @@ namespace AuctionHouse.Api.Controllers
         }
 
         /// <summary>
-        /// Gets all transactions where the current user is the buyer
+        /// Gets all transactions where the current user is the buyer (won auctions)
+        /// Aliases: /api/transactions/buyer, /api/transactions/my-purchases, /api/transactions/won-auctions
         /// </summary>
         [Authorize]
         [HttpGet("buyer")]
@@ -107,6 +108,26 @@ namespace AuctionHouse.Api.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+        }
+
+        /// <summary>
+        /// Alias for GetBuyerTransactions - Gets won auctions/my purchases
+        /// </summary>
+        [Authorize]
+        [HttpGet("my-purchases")]
+        public async Task<IActionResult> GetMyPurchases()
+        {
+            return await GetBuyerTransactions();
+        }
+
+        /// <summary>
+        /// Alias for GetBuyerTransactions - Gets won auctions
+        /// </summary>
+        [Authorize]
+        [HttpGet("won-auctions")]
+        public async Task<IActionResult> GetWonAuctions()
+        {
+            return await GetBuyerTransactions();
         }
 
         /// <summary>

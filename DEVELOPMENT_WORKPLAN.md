@@ -77,7 +77,7 @@ This workplan outlines a structured approach to building the auction platform, p
 - [ ] Implement multi-image upload component
 - [ ] Create "Edit Auction" page (for sellers)
 - [ ] Add auction timer/countdown component
-- [ ] Implement watchlist/favorite toggle button
+- [x] Implement watchlist/favorite toggle button (heart icon in AuctionCard and AuctionDetailsPage)
 - [ ] Create category filter component
 
 ### 2.3 Backend - Bidding System
@@ -158,11 +158,22 @@ This workplan outlines a structured approach to building the auction platform, p
 ## Phase 4: Enhanced User Features
 **Goal:** Complete the user experience with advanced features.
 
-### 4.1 Watchlist & Favorites
-- [ ] Backend: Create watchlist endpoints (add, remove, list)
-- [ ] Frontend: Implement watchlist functionality in auction cards
-- [ ] Add watchlist page showing all saved auctions
-- [ ] Send notifications when watchlist auction is ending soon
+### 4.1 Watchlist & Favorites ✅ COMPLETE
+- [x] Backend: Create watchlist endpoints (add, remove, list, check, get watchers count)
+- [x] Backend: Create Watchlist model and database table (migration applied)
+- [x] Backend: Implement WatchlistService with 5 methods
+- [x] Backend: Create WatchlistController with [Authorize] endpoints
+- [x] Frontend: Implement watchlist functionality in AuctionCard (heart icon toggle)
+- [x] Frontend: Add watchlist functionality in AuctionDetailsPage (two heart icon locations)
+- [x] Frontend: Add watchlist page showing all saved auctions (WatchlistPage.tsx)
+- [x] Frontend: Add watchlist link to header navigation with count badge
+- [x] Frontend: Implement auto-refresh of watchlist count (every 30 seconds)
+- [x] Frontend: Fix API response parsing (checkWatchlist, getWatchersCount)
+- [x] Frontend: Fix WatchlistPage routing bug (use auctionId instead of watchlist entry id)
+- [x] Add error handling for 404 (item not in watchlist)
+- [x] Display watchers count on auction cards and details page
+- [x] Persist watchlist data in database (survives page refreshes)
+- [ ] Send notifications when watchlist auction is ending soon (pending notification system)
 
 ### 4.2 Transaction & Payment (Basic)
 - [ ] Backend: Create Order/Transaction model
@@ -348,20 +359,37 @@ This workplan outlines a structured approach to building the auction platform, p
   - ✅ User profile page (UserProfile.tsx) with view/edit functionality
   - ✅ Enhanced UserDashboard with real API data for stats, bids, and auctions
   - ✅ Database migration for new profile fields applied
-  - Basic admin user management (CRUD, role assignment)
-  - Basic admin auction management (list, status change, delete)
-  - Dynamic category fetching
-  - JWT authentication setup
-  - New auctions default to "Pending" status
+  - ✅ Basic admin user management (CRUD, role assignment)
+  - ✅ Basic admin auction management (list, status change, delete)
+  - ✅ Dynamic category fetching
+  - ✅ JWT authentication setup
+  - ✅ New auctions default to "Pending" status
 
-📍 **Current Phase:** Phase 1 - User Management & Authentication (90% Complete)
+- **Phase 2 - Auction Core Features (IN PROGRESS):**
+  - ✅ Real-time bidding via SignalR (BidHub)
+  - ✅ Auction listing and detail pages
+  - ✅ Bidding interface with validation
+  - ✅ Bid history display
+  - ✅ Auction timer/countdown
+
+- **Phase 4 - Enhanced User Features:**
+  - ✅ **Watchlist & Favorites (100% COMPLETE):**
+    - ✅ Backend: Watchlist model, database table, 5 endpoints (add, remove, list, check, count)
+    - ✅ Backend: WatchlistService and WatchlistController with authorization
+    - ✅ Frontend: Watchlist toggle in AuctionCard and AuctionDetailsPage (heart icon)
+    - ✅ Frontend: WatchlistPage with grid layout and empty state
+    - ✅ Frontend: Header navigation with live watchlist count badge (auto-refresh)
+    - ✅ Frontend: Fixed API response parsing and routing bugs
+    - ✅ Persistent storage in database
+    - ✅ Real-time watchers count display
+    - ✅ Error handling for edge cases
+
+📍 **Current Phase:** Phase 2 - Auction Core Features (In Progress)
 **Next Immediate Tasks:**
-1. ~~Review and validate user registration/login functionality~~ ✅ DONE
-2. ~~Implement user dashboard~~ ✅ DONE
-3. ~~Test end-to-end user authentication flow~~ ✅ DONE
-4. Add UserProfile route to App.tsx navigation
-5. Optional: Email verification workflow
-6. Move to Phase 2: Auction Core Features
+1. ~~Implement watchlist/favorites feature~~ ✅ DONE
+2. Continue with Phase 2 remaining tasks (auction creation, image upload, search, filters)
+3. Complete bidding system enhancements
+4. Move to Phase 3: Real-Time Features (SignalR notifications)
 
 ---
 

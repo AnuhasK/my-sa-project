@@ -26,6 +26,7 @@ namespace AuctionHouse.Api.DTOs
         public int Id { get; set; }
         public int AuctionId { get; set; }
         public string AuctionTitle { get; set; } = string.Empty;
+        public string? AuctionImageUrl { get; set; }
         public string OtherPartyUsername { get; set; } = string.Empty; // Buyer for seller, Seller for buyer
         public decimal Amount { get; set; }
         public string PaymentStatus { get; set; } = "Pending";

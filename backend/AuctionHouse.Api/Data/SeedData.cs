@@ -26,22 +26,22 @@ namespace AuctionHouse.Api.Data
             };
 
             var user1 = new User {
-                Username = "john_doe",
-                Email = "john.doe@gmail.com",
+                Username = "dinitha",
+                Email = "dinitha@gmail.com",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("User@123"),
                 Role = "User"
             };
 
             var user2 = new User {
-                Username = "jane_smith",
-                Email = "jane.smith@gmail.com",
+                Username = "nipuna",
+                Email = "nipuna@gmail.com",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("User@123"),
                 Role = "User"
             };
 
             var user3 = new User {
-                Username = "collector_mike",
-                Email = "mike.collector@gmail.com",
+                Username = "kasuntha",
+                Email = "kasuntha@gmail.com",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("User@123"),
                 Role = "User"
             };

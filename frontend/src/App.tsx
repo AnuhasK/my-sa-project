@@ -30,6 +30,7 @@ function AppContent() {
   const { isAuthenticated, isAdmin, logout } = useAuth();
   const [currentPage, setCurrentPage] = useState('home');
   const [selectedAuction, setSelectedAuction] = useState('1');
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
 
   // Handle URL-based routing (for external redirects like Stripe)
   useEffect(() => {
@@ -60,6 +61,7 @@ function AppContent() {
           <HomePage 
             setCurrentPage={setCurrentPage} 
             setSelectedAuction={setSelectedAuction}
+            setSelectedCategory={setSelectedCategory}
           />
         );
       case 'auctions':
@@ -68,6 +70,7 @@ function AppContent() {
             setCurrentPage={setCurrentPage}
             setSelectedAuction={setSelectedAuction}
             isAdmin={isAdmin}
+            initialCategoryId={selectedCategory}
           />
         );
       case 'auction-details':
@@ -223,6 +226,7 @@ function AppContent() {
           <HomePage 
             setCurrentPage={setCurrentPage} 
             setSelectedAuction={setSelectedAuction}
+            setSelectedCategory={setSelectedCategory}
           />
         );
     }

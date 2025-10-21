@@ -8,6 +8,7 @@ import api from '../../services/api';
 interface HomePageProps {
   setCurrentPage: (page: string) => void;
   setSelectedAuction: (id: string) => void;
+  setSelectedCategory: (id: number | null) => void;
 }
 
 interface Auction {
@@ -31,7 +32,7 @@ interface Category {
   count?: number;
 }
 
-export function HomePage({ setCurrentPage, setSelectedAuction }: HomePageProps) {
+export function HomePage({ setCurrentPage, setSelectedAuction, setSelectedCategory }: HomePageProps) {
   const [auctions, setAuctions] = useState<Auction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -171,7 +172,10 @@ export function HomePage({ setCurrentPage, setSelectedAuction }: HomePageProps) 
             <Button 
               size="lg" 
               className="bg-black text-white hover:bg-gray-800 px-8 py-3"
-              onClick={() => setCurrentPage('auctions')}
+              onClick={() => {
+                setSelectedCategory(null);
+                setCurrentPage('auctions');
+              }}
             >
               Browse Auctions
             </Button>
@@ -227,7 +231,10 @@ export function HomePage({ setCurrentPage, setSelectedAuction }: HomePageProps) 
             </div>
             <Button 
               variant="outline"
-              onClick={() => setCurrentPage('auctions')}
+              onClick={() => {
+                setSelectedCategory(null);
+                setCurrentPage('auctions');
+              }}
               className="flex items-center space-x-2 border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               <span>View All</span>
@@ -304,7 +311,10 @@ export function HomePage({ setCurrentPage, setSelectedAuction }: HomePageProps) 
                 <button
                   key={category.id}
                   className="p-6 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-center group"
-                  onClick={() => setCurrentPage('auctions')}
+                  onClick={() => {
+                    setSelectedCategory(category.id);
+                    setCurrentPage('auctions');
+                  }}
                 >
                   <h3 className="font-medium text-gray-900 mb-2 group-hover:text-black">
                     {category.name}
@@ -313,30 +323,6 @@ export function HomePage({ setCurrentPage, setSelectedAuction }: HomePageProps) 
                 </button>
               );
             })}
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-16 bg-gray-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            <div>
-              <div className="text-3xl font-bold mb-2">50K+</div>
-              <div className="text-gray-400">Active Bidders</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold mb-2">12K+</div>
-              <div className="text-gray-400">Items Sold</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold mb-2">$2.4M+</div>
-              <div className="text-gray-400">Total Sales</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold mb-2">98%</div>
-              <div className="text-gray-400">Satisfaction Rate</div>
-            </div>
           </div>
         </div>
       </section>

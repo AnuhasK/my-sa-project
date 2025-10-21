@@ -18,6 +18,7 @@ interface AuctionListingPageProps {
   setCurrentPage: (page: string) => void;
   setSelectedAuction: (id: string) => void;
   isAdmin?: boolean;
+  initialCategoryId?: number | null;
 }
 
 interface Auction {
@@ -34,7 +35,7 @@ interface Auction {
   bidCount: number;
 }
 
-export function AuctionListingPage({ setCurrentPage, setSelectedAuction }: AuctionListingPageProps) {
+export function AuctionListingPage({ setCurrentPage, setSelectedAuction, initialCategoryId }: AuctionListingPageProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [auctions, setAuctions] = useState<Auction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,14 +43,24 @@ export function AuctionListingPage({ setCurrentPage, setSelectedAuction }: Aucti
   const [sortBy, setSortBy] = useState('ending-soon');
   const [currentFilters, setCurrentFilters] = useState<any>({});
 
-  // Check for search query on mount
+  // Check for search query and initial category on mount
   useEffect(() => {
     const searchQuery = sessionStorage.getItem('searchQuery');
+    const initialFilters: any = {};
+    
     if (searchQuery) {
-      setCurrentFilters({ search: searchQuery });
+      initialFilters.search = searchQuery;
       sessionStorage.removeItem('searchQuery'); // Clear after using
     }
-  }, []);
+    
+    if (initialCategoryId) {
+      initialFilters.categoryId = initialCategoryId;
+    }
+    
+    if (Object.keys(initialFilters).length > 0) {
+      setCurrentFilters(initialFilters);
+    }
+  }, [initialCategoryId]);
 
   // Fetch auctions on mount and when filters change
   useEffect(() => {

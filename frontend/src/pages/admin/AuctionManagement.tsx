@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Search, Filter, MoreHorizontal, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Filter, MoreHorizontal, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, AlertTriangle, Plus, Loader2, Lock } from 'lucide-react';
 import { Button } from '../../components/button';
 import { Input } from '../../components/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/card';
@@ -8,114 +8,185 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/tabs';
+import { useAuth } from '../../contexts/AuthContext';
+import { toast } from 'sonner';
 
-export function AuctionManagement() {
+interface AuctionManagementProps {
+  setCurrentPage?: (page: string) => void;
+}
+
+interface Auction {
+  id: number;
+  title: string;
+  description: string;
+  currentPrice: number;
+  startTime: string;
+  endTime: string;
+  status: string;
+  categoryId: number;
+  categoryName?: string;
+  sellerId?: number;
+  sellerUsername?: string;
+  bidCount?: number;
+  primaryImageUrl?: string;
+}
+
+interface Category {
+  id: number;
+  name: string;
+  description: string;
+}
+
+export function AuctionManagement({ setCurrentPage }: AuctionManagementProps) {
+  const { token } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [activeTab, setActiveTab] = useState('all');
+  const [auctions, setAuctions] = useState<Auction[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const auctions = [
-    {
-      id: 'AUC-001',
-      title: 'Vintage Omega Speedmaster Professional',
-      seller: 'TimeCollector',
-      category: 'Watches',
-      startDate: '2024-09-05',
-      endDate: '2024-09-15',
-      startingBid: 1500,
-      currentBid: 2850,
-      bids: 23,
-      status: 'active',
-      featured: true,
-      views: 1247
-    },
-    {
-      id: 'AUC-002',
-      title: 'Mid-Century Modern Lounge Chair',
-      seller: 'FurnitureExpert',
-      category: 'Furniture',
-      startDate: '2024-09-08',
-      endDate: '2024-09-12',
-      startingBid: 500,
-      currentBid: 1250,
-      bids: 18,
-      status: 'ending-soon',
-      featured: false,
-      views: 892
-    },
-    {
-      id: 'AUC-003',
-      title: 'Original Oil Painting - Abstract Landscape',
-      seller: 'ArtDealer',
-      category: 'Art',
-      startDate: '2024-09-10',
-      endDate: '2024-09-20',
-      startingBid: 800,
-      currentBid: 1680,
-      bids: 31,
-      status: 'active',
-      featured: true,
-      views: 1456
-    },
-    {
-      id: 'AUC-004',
-      title: 'Rare Book Collection - First Editions',
-      seller: 'BookCollector',
-      category: 'Books',
-      startDate: '2024-09-12',
-      endDate: '2024-09-22',
-      startingBid: 200,
-      currentBid: 450,
-      bids: 7,
-      status: 'pending-approval',
-      featured: false,
-      views: 234
-    },
-    {
-      id: 'AUC-005',
-      title: 'Antique Silver Tea Set',
-      seller: 'SilverSpecialist',
-      category: 'Antiques',
-      startDate: '2024-09-01',
-      endDate: '2024-09-08',
-      startingBid: 300,
-      currentBid: 875,
-      bids: 15,
-      status: 'completed',
-      featured: false,
-      views: 687
-    },
-    {
-      id: 'AUC-006',
-      title: 'Designer Handbag - Limited Edition',
-      seller: 'LuxuryItems',
-      category: 'Fashion',
-      startDate: '2024-09-14',
-      endDate: '2024-09-24',
-      startingBid: 600,
-      currentBid: 0,
-      bids: 0,
-      status: 'upcoming',
-      featured: false,
-      views: 156
+  // Fetch auctions from backend
+  useEffect(() => {
+    fetchAuctions();
+    fetchCategories();
+  }, [token]);
+
+  const fetchAuctions = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch('http://localhost:5021/api/auctions', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch auctions');
+      }
+
+      const data = await response.json();
+      setAuctions(data); // Keep all auctions including deleted ones
+    } catch (err: any) {
+      console.error('Error fetching auctions:', err);
+      setError(err.message);
+      toast.error('Failed to load auctions');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('http://localhost:5021/api/categories');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch categories');
+      }
+
+      const data = await response.json();
+      setCategories(data);
+    } catch (err: any) {
+      console.error('Error fetching categories:', err);
+    }
+  };
+
+  const handleDeleteAuction = async (auctionId: number) => {
+    if (!confirm('Are you sure you want to delete this auction?')) return;
+
+    try {
+      const response = await fetch(`http://localhost:5021/api/auctions/${auctionId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        // Try to get error message from response
+        const errorData = await response.json().catch(() => null);
+        const errorMessage = errorData?.message || 'Failed to delete auction';
+        throw new Error(errorMessage);
+      }
+
+      toast.success('Auction deleted successfully');
+      await fetchAuctions();
+    } catch (err: any) {
+      console.error('Error deleting auction:', err);
+      toast.error(err.message || 'Failed to delete auction');
+    }
+  };
+
+  const handleChangeStatus = async (auctionId: number, newStatus: string) => {
+    if (!confirm(`Are you sure you want to change this auction status to ${newStatus}?`)) return;
+
+    try {
+      const response = await fetch(`http://localhost:5021/api/admin/auctions/${auctionId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        const errorMessage = errorData?.message || 'Failed to change auction status';
+        throw new Error(errorMessage);
+      }
+
+      toast.success(`Auction status changed to ${newStatus}`);
+      await fetchAuctions();
+    } catch (err: any) {
+      console.error('Error changing auction status:', err);
+      toast.error(err.message || 'Failed to change auction status');
+    }
+  };
+
+  const handleCloseAuction = async (auctionId: number, auctionTitle: string) => {
+    if (!confirm(`Close auction "${auctionTitle}" and create transaction for winner?`)) return;
+
+    try {
+      const response = await fetch(`http://localhost:5021/api/auctions/${auctionId}/close`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(errorData || 'Failed to close auction');
+      }
+
+      toast.success('Auction closed and transaction created successfully!');
+      await fetchAuctions();
+    } catch (err: any) {
+      console.error('Error closing auction:', err);
+      toast.error(err.message || 'Failed to close auction');
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'active':
-        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
-      case 'ending-soon':
-        return <Badge className="bg-orange-100 text-orange-800">Ending Soon</Badge>;
-      case 'pending-approval':
+      case 'Open':
+        return <Badge className="bg-green-100 text-green-800">Open</Badge>;
+      case 'Pending':
         return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
-      case 'completed':
-        return <Badge className="bg-blue-100 text-blue-800">Completed</Badge>;
-      case 'upcoming':
-        return <Badge className="bg-purple-100 text-purple-800">Upcoming</Badge>;
-      case 'suspended':
+      case 'Closed':
+        return <Badge className="bg-blue-100 text-blue-800">Closed</Badge>;
+      case 'Sold':
+        return <Badge className="bg-purple-100 text-purple-800">Sold</Badge>;
+      case 'Suspended':
         return <Badge className="bg-red-100 text-red-800">Suspended</Badge>;
+      case 'Deleted':
+        return <Badge className="bg-gray-100 text-gray-800">Deleted</Badge>;
       default:
         return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
     }
@@ -123,15 +194,14 @@ export function AuctionManagement() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'active':
+      case 'Open':
         return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case 'ending-soon':
-        return <Clock className="w-4 h-4 text-orange-600" />;
-      case 'pending-approval':
+      case 'Pending':
         return <AlertTriangle className="w-4 h-4 text-yellow-600" />;
-      case 'completed':
+      case 'Closed':
+      case 'Sold':
         return <CheckCircle className="w-4 h-4 text-blue-600" />;
-      case 'suspended':
+      case 'Suspended':
         return <XCircle className="w-4 h-4 text-red-600" />;
       default:
         return <Clock className="w-4 h-4 text-gray-600" />;
@@ -141,32 +211,31 @@ export function AuctionManagement() {
   const filterAuctionsByTab = (tab: string) => {
     switch (tab) {
       case 'active':
-        return auctions.filter(a => a.status === 'active' || a.status === 'ending-soon');
+        return auctions.filter(a => a.status === 'Open');
       case 'pending':
-        return auctions.filter(a => a.status === 'pending-approval');
+        return auctions.filter(a => a.status === 'Pending');
       case 'completed':
-        return auctions.filter(a => a.status === 'completed');
-      case 'upcoming':
-        return auctions.filter(a => a.status === 'upcoming');
+        return auctions.filter(a => a.status === 'Closed' || a.status === 'Sold');
+      case 'flagged':
+        return auctions.filter(a => a.status === 'Suspended' || a.status === 'Deleted');
       default:
-        return auctions;
+        // "All" tab - exclude deleted auctions
+        return auctions.filter(a => a.status !== 'Deleted');
     }
   };
 
   const filteredAuctions = filterAuctionsByTab(activeTab).filter(auction => {
-    const matchesSearch = auction.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         auction.seller.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         auction.id.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = auction.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = categoryFilter === 'all' || auction.categoryId.toString() === categoryFilter;
     const matchesStatus = statusFilter === 'all' || auction.status === statusFilter;
-    const matchesCategory = categoryFilter === 'all' || auction.category === categoryFilter;
-    return matchesSearch && matchesStatus && matchesCategory;
+    return matchesSearch && matchesCategory && matchesStatus;
   });
 
   const stats = [
-    { label: 'Total Auctions', value: auctions.length, color: 'text-gray-900' },
-    { label: 'Active', value: auctions.filter(a => a.status === 'active' || a.status === 'ending-soon').length, color: 'text-green-600' },
-    { label: 'Pending Approval', value: auctions.filter(a => a.status === 'pending-approval').length, color: 'text-yellow-600' },
-    { label: 'Completed This Month', value: auctions.filter(a => a.status === 'completed').length, color: 'text-blue-600' }
+    { label: 'Total Auctions', value: auctions.filter(a => a.status !== 'Deleted').length, color: 'text-gray-900' },
+    { label: 'Open', value: auctions.filter(a => a.status === 'Open').length, color: 'text-green-600' },
+    { label: 'Pending Approval', value: auctions.filter(a => a.status === 'Pending').length, color: 'text-yellow-600' },
+    { label: 'Closed/Sold', value: auctions.filter(a => a.status === 'Closed' || a.status === 'Sold').length, color: 'text-blue-600' }
   ];
 
   return (
@@ -177,7 +246,11 @@ export function AuctionManagement() {
           <h1 className="text-2xl font-semibold text-gray-900">Auction Management</h1>
           <p className="text-gray-600 mt-1">Monitor and manage all auction listings</p>
         </div>
-        <Button className="bg-black text-white hover:bg-gray-800">
+        <Button 
+          className="bg-black text-white hover:bg-gray-800"
+          onClick={() => setCurrentPage?.('admin-create-auction')}
+        >
+          <Plus className="w-4 h-4 mr-2" />
           Create New Auction
         </Button>
       </div>
@@ -213,17 +286,16 @@ export function AuctionManagement() {
               
               {/* Category Filter */}
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-48">
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
-                  <SelectItem value="Watches">Watches</SelectItem>
-                  <SelectItem value="Art">Art</SelectItem>
-                  <SelectItem value="Furniture">Furniture</SelectItem>
-                  <SelectItem value="Books">Books</SelectItem>
-                  <SelectItem value="Antiques">Antiques</SelectItem>
-                  <SelectItem value="Fashion">Fashion</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id.toString()}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
@@ -234,10 +306,12 @@ export function AuctionManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="pending-approval">Pending</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="upcoming">Upcoming</SelectItem>
+                  <SelectItem value="Open">Open</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="Closed">Closed</SelectItem>
+                  <SelectItem value="Sold">Sold</SelectItem>
+                  <SelectItem value="Suspended">Suspended</SelectItem>
+                  <SelectItem value="Deleted">Deleted</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -247,82 +321,89 @@ export function AuctionManagement() {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="active">Active</TabsTrigger>
+              <TabsTrigger value="active">Open</TabsTrigger>
               <TabsTrigger value="pending">Pending</TabsTrigger>
-              <TabsTrigger value="completed">Completed</TabsTrigger>
-              <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+              <TabsTrigger value="completed">Closed/Sold</TabsTrigger>
+              <TabsTrigger value="flagged">Flagged</TabsTrigger>
             </TabsList>
 
             <TabsContent value={activeTab}>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Auction</TableHead>
-                      <TableHead>Seller</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Bids</TableHead>
-                      <TableHead>Current Bid</TableHead>
-                      <TableHead>End Date</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredAuctions.map((auction) => (
-                      <TableRow key={auction.id}>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium text-gray-900 flex items-center">
-                              {auction.title}
-                              {auction.featured && (
-                                <Badge className="ml-2 bg-purple-100 text-purple-800 text-xs">
-                                  Featured
-                                </Badge>
-                              )}
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                  <span className="ml-2 text-gray-600">Loading auctions...</span>
+                </div>
+              ) : error ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <AlertTriangle className="w-12 h-12 text-red-400 mb-2" />
+                  <p className="text-red-600">{error}</p>
+                  <Button onClick={fetchAuctions} className="mt-4">Retry</Button>
+                </div>
+              ) : filteredAuctions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <p className="text-gray-600">No auctions found</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Auction</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Current Price</TableHead>
+                        <TableHead>Start Time</TableHead>
+                        <TableHead>End Time</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredAuctions.map((auction) => (
+                        <TableRow key={auction.id}>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium text-gray-900">
+                                {auction.title}
+                              </div>
+                              <div className="text-sm text-gray-500">ID: {auction.id}</div>
                             </div>
-                            <div className="text-sm text-gray-500">{auction.id}</div>
-                            <div className="text-xs text-gray-400">{auction.views} views</div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <div className="font-medium text-gray-900">{auction.seller}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{auction.category}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            {getStatusIcon(auction.status)}
-                            {getStatusBadge(auction.status)}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <div className="font-medium">{auction.bids}</div>
-                            <div className="text-gray-500">bids</div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <div className="font-medium">
-                              ${auction.currentBid > 0 ? auction.currentBid.toLocaleString() : 'No bids'}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">
+                              {auction.categoryName || categories.find(c => c.id === auction.categoryId)?.name || 'Unknown'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              {getStatusIcon(auction.status)}
+                              {getStatusBadge(auction.status)}
                             </div>
-                            <div className="text-gray-500">
-                              Start: ${auction.startingBid.toLocaleString()}
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              <div className="font-medium">
+                                ${auction.currentPrice?.toLocaleString() || '0'}
+                              </div>
+                              <div className="text-gray-500">
+                                {auction.bidCount || 0} bids
+                              </div>
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm text-gray-600">{auction.endDate}</div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreHorizontal className="w-4 h-4" />
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm text-gray-600">
+                              {new Date(auction.startTime).toLocaleDateString()}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm text-gray-600">
+                              {new Date(auction.endTime).toLocaleDateString()}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreHorizontal className="w-4 h-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
@@ -334,19 +415,56 @@ export function AuctionManagement() {
                                 <Edit className="w-4 h-4 mr-2" />
                                 Edit Auction
                               </DropdownMenuItem>
-                              {auction.status === 'pending-approval' && (
-                                <>
-                                  <DropdownMenuItem className="text-green-600">
-                                    <CheckCircle className="w-4 h-4 mr-2" />
-                                    Approve
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem className="text-red-600">
-                                    <XCircle className="w-4 h-4 mr-2" />
-                                    Reject
-                                  </DropdownMenuItem>
-                                </>
+                              
+                              {/* Change Status Section */}
+                              <div className="px-2 py-1.5 text-xs font-semibold text-gray-500">Change Status</div>
+                              {auction.status !== 'Open' && (
+                                <DropdownMenuItem 
+                                  className="text-green-600"
+                                  onClick={() => handleChangeStatus(auction.id, 'Open')}
+                                >
+                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                  Set as Open
+                                </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem className="text-red-600">
+                              {auction.status !== 'Pending' && (
+                                <DropdownMenuItem 
+                                  className="text-yellow-600"
+                                  onClick={() => handleChangeStatus(auction.id, 'Pending')}
+                                >
+                                  <AlertTriangle className="w-4 h-4 mr-2" />
+                                  Set as Pending
+                                </DropdownMenuItem>
+                              )}
+                              {auction.status !== 'Closed' && (
+                                <DropdownMenuItem 
+                                  className="text-blue-600"
+                                  onClick={() => handleChangeStatus(auction.id, 'Closed')}
+                                >
+                                  <XCircle className="w-4 h-4 mr-2" />
+                                  Set as Closed
+                                </DropdownMenuItem>
+                              )}
+                              
+                              <div className="my-1 h-px bg-gray-200" />
+                              
+                              {/* Close Auction & Create Transaction */}
+                              {(auction.status === 'Open' || auction.status === 'Closed') && auction.bidCount && auction.bidCount > 0 && (
+                                <DropdownMenuItem 
+                                  className="text-indigo-600 font-medium"
+                                  onClick={() => handleCloseAuction(auction.id, auction.title)}
+                                >
+                                  <Lock className="w-4 h-4 mr-2" />
+                                  Close & Create Transaction
+                                </DropdownMenuItem>
+                              )}
+                              
+                              <div className="my-1 h-px bg-gray-200" />
+                              
+                              <DropdownMenuItem 
+                                className="text-red-600"
+                                onClick={() => handleDeleteAuction(auction.id)}
+                              >
                                 <Trash2 className="w-4 h-4 mr-2" />
                                 Delete
                               </DropdownMenuItem>
@@ -358,30 +476,7 @@ export function AuctionManagement() {
                   </TableBody>
                 </Table>
               </div>
-              
-              {/* Pagination */}
-              <div className="flex items-center justify-between mt-6">
-                <div className="text-sm text-gray-500">
-                  Showing {filteredAuctions.length} of {filterAuctionsByTab(activeTab).length} auctions
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button variant="outline" size="sm" disabled>
-                    Previous
-                  </Button>
-                  <Button variant="outline" size="sm" className="bg-black text-white">
-                    1
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    2
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    3
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    Next
-                  </Button>
-                </div>
-              </div>
+              )}
             </TabsContent>
           </Tabs>
         </CardContent>

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './card';
 import { Badge } from './badge';
 import { Button } from './button';
 import { api } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Transaction {
   id: number;
@@ -20,6 +21,7 @@ interface TransactionsListProps {
 }
 
 export function TransactionsList({ type }: TransactionsListProps) {
+  const { token } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +34,6 @@ export function TransactionsList({ type }: TransactionsListProps) {
     try {
       setLoading(true);
       setError(null);
-      const token = localStorage.getItem('authToken');
       if (!token) {
         setError('Not authenticated');
         return;

@@ -25,9 +25,19 @@ namespace AuctionHouse.Api.Services
         Task<ServiceResult<List<TransactionListDto>>> GetSellerTransactionsAsync(int sellerId);
 
         /// <summary>
+        /// Gets all transactions (admin only)
+        /// </summary>
+        Task<ServiceResult<List<TransactionListDto>>> GetAllTransactionsAsync();
+
+        /// <summary>
         /// Updates the payment status of a transaction
         /// </summary>
         Task<ServiceResult> UpdatePaymentStatusAsync(int transactionId, string paymentStatus, int userId);
+
+        /// <summary>
+        /// Updates shipping information for a transaction
+        /// </summary>
+        Task<ServiceResult> UpdateShippingInfoAsync(int transactionId, string? shippingAddress, string? trackingNumber, string? shippingMethod, string? adminNotes, int userId);
 
         /// <summary>
         /// Checks if a transaction exists for an auction

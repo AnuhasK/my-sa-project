@@ -1,18 +1,23 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, Grid, List, SlidersHorizontal } from 'lucide-react';
+import { Grid, List } from 'lucide-react';
 import { Button } from '../../components/button';
-import { Input } from '../../components/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/select';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../../components/sheet';
-import { Checkbox } from '../../components/checkbox';
-import { Slider } from '../../components/slider';
 import { AuctionCard } from './AuctionCard';
 import AuctionFilters from '../../components/AuctionFilters';
 import api from '../../services/api';
 
+// Helper to convert relative image URLs to full URLs
+const getImageUrl = (relativeUrl: string | undefined) => {
+  if (!relativeUrl || relativeUrl.startsWith('http')) return relativeUrl;
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5021/api';
+  const baseUrl = apiBase.replace(/\/api$/, '');
+  return `${baseUrl}${relativeUrl}`;
+};
+
 interface AuctionListingPageProps {
   setCurrentPage: (page: string) => void;
   setSelectedAuction: (id: string) => void;
+  isAdmin?: boolean;
 }
 
 interface Auction {
@@ -35,9 +40,16 @@ export function AuctionListingPage({ setCurrentPage, setSelectedAuction }: Aucti
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState('ending-soon');
-  const [priceRange, setPriceRange] = useState([0, 10000]);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [currentFilters, setCurrentFilters] = useState<any>({});
+
+  // Check for search query on mount
+  useEffect(() => {
+    const searchQuery = sessionStorage.getItem('searchQuery');
+    if (searchQuery) {
+      setCurrentFilters({ search: searchQuery });
+      sessionStorage.removeItem('searchQuery'); // Clear after using
+    }
+  }, []);
 
   // Fetch auctions on mount and when filters change
   useEffect(() => {
@@ -96,6 +108,7 @@ export function AuctionListingPage({ setCurrentPage, setSelectedAuction }: Aucti
       imageUrl: auction.primaryImageUrl || '/img/placeholder-auction.jpg',
       views: 0, // Not tracked yet
       category: auction.categoryName,
+      status: auction.status,
       isEnding: isEnding
     };
   };
@@ -163,91 +176,10 @@ export function AuctionListingPage({ setCurrentPage, setSelectedAuction }: Aucti
     }
   ];
 
-  const categories = ['Art', 'Watches', 'Furniture', 'Electronics', 'Jewelry', 'Music', 'Books', 'Collectibles'];
-
-  const handleCategoryChange = (category: string, checked: boolean) => {
-    if (checked) {
-      setSelectedCategories(prev => [...prev, category]);
-    } else {
-      setSelectedCategories(prev => prev.filter(c => c !== category));
-    }
-  };
-
   const handleAuctionClick = (id: string) => {
     setSelectedAuction(id);
     setCurrentPage('auction-details');
   };
-
-  const FilterContent = () => (
-    <div className="space-y-6">
-      {/* Categories */}
-      <div>
-        <h3 className="font-medium text-gray-900 mb-3">Categories</h3>
-        <div className="space-y-2">
-          {categories.map((category) => (
-            <div key={category} className="flex items-center space-x-2">
-              <Checkbox
-                id={category}
-                checked={selectedCategories.includes(category)}
-                onCheckedChange={(checked: boolean) => handleCategoryChange(category, checked)}
-              />
-              <label htmlFor={category} className="text-sm text-gray-700 cursor-pointer">
-                {category}
-              </label>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Price Range */}
-      <div>
-        <h3 className="font-medium text-gray-900 mb-3">Price Range</h3>
-        <div className="px-2">
-          <Slider
-            value={priceRange}
-            onValueChange={setPriceRange}
-            max={10000}
-            step={50}
-            className="mb-3"
-          />
-          <div className="flex justify-between text-sm text-gray-600">
-            <span>${priceRange[0]}</span>
-            <span>${priceRange[1]}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Condition */}
-      <div>
-        <h3 className="font-medium text-gray-900 mb-3">Condition</h3>
-        <div className="space-y-2">
-          {['New', 'Like New', 'Very Good', 'Good', 'Fair'].map((condition) => (
-            <div key={condition} className="flex items-center space-x-2">
-              <Checkbox id={condition} />
-              <label htmlFor={condition} className="text-sm text-gray-700 cursor-pointer">
-                {condition}
-              </label>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Auction Status */}
-      <div>
-        <h3 className="font-medium text-gray-900 mb-3">Status</h3>
-        <div className="space-y-2">
-          {['Live Auctions', 'Ending Soon', 'Buy Now Available'].map((status) => (
-            <div key={status} className="flex items-center space-x-2">
-              <Checkbox id={status} />
-              <label htmlFor={status} className="text-sm text-gray-700 cursor-pointer">
-                {status}
-              </label>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-white">
@@ -264,43 +196,12 @@ export function AuctionListingPage({ setCurrentPage, setSelectedAuction }: Aucti
           onClearFilters={handleClearFilters}
         />
 
-        {/* Search and Filters */}
-        <div className="mb-8 space-y-4" style={{ display: 'none' }}>
-          {/* Old Search Bar - Hidden */}
-          <div className="relative max-w-2xl">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <Input
-              type="text"
-              placeholder="Search auctions..."
-              className="pl-10 pr-4 py-3 border-gray-200 focus:border-gray-400 rounded-lg"
-            />
-          </div>
-
-          {/* Controls */}
+        {/* View Controls and Sort */}
+        <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-            <div className="flex items-center space-x-4">
-              {/* Mobile Filter Button */}
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" className="flex items-center space-x-2 lg:hidden">
-                    <SlidersHorizontal className="w-4 h-4" />
-                    <span>Filters</span>
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-80">
-                  <SheetHeader>
-                    <SheetTitle>Filters</SheetTitle>
-                  </SheetHeader>
-                  <div className="mt-6">
-                    <FilterContent />
-                  </div>
-                </SheetContent>
-              </Sheet>
-
-              <span className="text-sm text-gray-600">
-                Showing {auctions.length} of 1,247 auctions
-              </span>
-            </div>
+            <span className="text-sm text-gray-600">
+              Showing {auctions.length} auctions
+            </span>
 
             <div className="flex items-center space-x-4">
               {/* Sort */}
@@ -340,20 +241,9 @@ export function AuctionListingPage({ setCurrentPage, setSelectedAuction }: Aucti
           </div>
         </div>
 
-        <div className="flex gap-8">
-          {/* Desktop Sidebar Filters */}
-          <div className="hidden lg:block w-64 flex-shrink-0">
-            <div className="bg-gray-50 rounded-lg p-6">
-              <div className="flex items-center space-x-2 mb-6">
-                <Filter className="w-5 h-5 text-gray-700" />
-                <h2 className="font-medium text-gray-900">Filters</h2>
-              </div>
-              <FilterContent />
-            </div>
-          </div>
-
-          {/* Main Content */}
-          <div className="flex-1">
+        {/* Main Content - Full Width */}
+        <div>
+          <div className="w-full">
             {/* Loading State */}
             {loading && (
               <div className="text-center py-12">
@@ -402,7 +292,7 @@ export function AuctionListingPage({ setCurrentPage, setSelectedAuction }: Aucti
                         >
                           <div className="flex items-center space-x-6">
                             <img
-                              src={formatted.imageUrl}
+                              src={getImageUrl(formatted.imageUrl)}
                               alt={formatted.title}
                               className="w-24 h-24 object-cover rounded-lg"
                             />

@@ -43,7 +43,25 @@ namespace AuctionHouse.Api.DTOs
 
     public class UserActionDto
     {
-        public string Action { get; set; } = null!; // "suspend", "activate", "delete"
+        public string? Action { get; set; } // "suspend", "activate", "delete" (optional, inferred from endpoint)
         public string? Reason { get; set; }
+    }
+
+    public class CreateUserDto
+    {
+        public string Username { get; set; } = null!;
+        public string Email { get; set; } = null!;
+        public string Password { get; set; } = null!;
+        public string Role { get; set; } = "User"; // Default role: "User" or "Admin"
+    }
+
+    public class UpdateRoleDto
+    {
+        public string Role { get; set; } = null!; // "User" or "Admin"
+    }
+
+    public class UpdateAuctionStatusDto
+    {
+        public string Status { get; set; } = null!; // "Open", "Pending", "Closed", "Sold", "Suspended"
     }
 }

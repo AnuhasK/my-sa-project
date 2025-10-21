@@ -8,25 +8,48 @@ namespace AuctionHouse.Api.Services
     public class AuctionService : IAuctionService
     {
         private readonly ApplicationDbContext _db;
+        private readonly ILogger<AuctionService> _logger;
         
-        public AuctionService(ApplicationDbContext db) 
+        public AuctionService(ApplicationDbContext db, ILogger<AuctionService> logger) 
         { 
             _db = db;
+            _logger = logger;
         }
 
         public async Task<Auction> CreateAsync(int sellerId, AuctionCreateDto dto)
         {
+            // Validate times
+            var now = DateTime.UtcNow;
+            var startTimeUtc = dto.StartTime.ToUniversalTime();
+            var endTimeUtc = dto.EndTime.ToUniversalTime();
+
+            if (startTimeUtc <= now)
+            {
+                throw new ApplicationException("Start time must be in the future");
+            }
+
+            if (endTimeUtc <= startTimeUtc)
+            {
+                throw new ApplicationException("End time must be after start time");
+            }
+
+            var duration = endTimeUtc - startTimeUtc;
+            if (duration.TotalHours < 1)
+            {
+                throw new ApplicationException("Auction must run for at least 1 hour");
+            }
+
             var auction = new Auction
             {
                 Title = dto.Title,
                 Description = dto.Description,
                 StartPrice = dto.StartPrice,
                 CurrentPrice = dto.StartPrice,
-                StartTime = dto.StartTime.ToUniversalTime(),
-                EndTime = dto.EndTime.ToUniversalTime(),
+                StartTime = startTimeUtc,
+                EndTime = endTimeUtc,
                 SellerId = sellerId,
                 CategoryId = dto.CategoryId > 0 ? dto.CategoryId : null,
-                Status = dto.StartTime <= DateTime.UtcNow ? "Open" : "Scheduled"
+                Status = "Pending" // All new auctions start as Pending for admin review
             };
             _db.Auctions.Add(auction);
             await _db.SaveChangesAsync();
@@ -45,6 +68,7 @@ namespace AuctionHouse.Api.Services
                 .Include(a => a.Images)  // Explicitly include images
                 .Include(a => a.Bids)    // Explicitly include bids for count
                 .Include(a => a.Category) // Explicitly include category
+                .Where(a => a.Status != "Deleted") // Exclude deleted auctions from public view
                 .AsQueryable();
 
             // Apply search filter
@@ -100,7 +124,7 @@ namespace AuctionHouse.Api.Services
                     Status = a.Status,
                     CategoryName = a.Category != null ? a.Category.Name : "Uncategorized",
                     CategoryId = a.CategoryId ?? 0,
-                    PrimaryImageUrl = a.Images.OrderBy(i => i.Id).FirstOrDefault() != null ? a.Images.OrderBy(i => i.Id).FirstOrDefault()!.Url : null,
+                    PrimaryImageUrl = a.Images.OrderBy(i => i.IsPrimary ? 0 : 1).ThenBy(i => i.DisplayOrder).FirstOrDefault() != null ? a.Images.OrderBy(i => i.IsPrimary ? 0 : 1).ThenBy(i => i.DisplayOrder).FirstOrDefault()!.Url : null,
                     BidCount = a.Bids.Count
                 })
                 .ToListAsync();
@@ -126,7 +150,7 @@ namespace AuctionHouse.Api.Services
                     Status = a.Status,
                     CategoryName = a.Category != null ? a.Category.Name : "Uncategorized",
                     CategoryId = a.CategoryId ?? 0,
-                    ImageUrls = a.Images.OrderBy(i => i.Id).Select(i => i.Url).ToList(),
+                    ImageUrls = a.Images.OrderBy(i => i.IsPrimary ? 0 : 1).ThenBy(i => i.DisplayOrder).Select(i => i.Url).ToList(),
                     BidCount = a.Bids.Count
                 })
                 .FirstOrDefaultAsync();
@@ -134,12 +158,118 @@ namespace AuctionHouse.Api.Services
 
         public async Task CloseAuctionAsync(int id)
         {
-            var auction = await _db.Auctions.FindAsync(id);
-            if (auction == null) throw new ApplicationException("Auction not found");
+            var auction = await _db.Auctions
+                .Include(a => a.Bids)
+                    .ThenInclude(b => b.Bidder)
+                .FirstOrDefaultAsync(a => a.Id == id);
+                
+            if (auction == null) 
+                throw new ApplicationException("Auction not found");
+
+            // Mark auction as closed
             auction.Status = "Closed";
+
+            // If there are bids, determine winner and create transaction
+            if (auction.Bids != null && auction.Bids.Any())
+            {
+                // Get the highest bid (winner)
+                var winningBid = auction.Bids
+                    .OrderByDescending(b => b.Amount)
+                    .ThenBy(b => b.Timestamp) // Earlier bid wins in case of tie
+                    .FirstOrDefault();
+
+                if (winningBid != null)
+                {
+                    _logger.LogInformation($"Auction {id} won by user {winningBid.BidderId} with bid of ${winningBid.Amount}");
+
+                    // Check if transaction already exists
+                    var existingTransaction = await _db.Transactions
+                        .FirstOrDefaultAsync(t => t.AuctionId == id);
+
+                    if (existingTransaction == null)
+                    {
+                        // Create transaction for the winner
+                        var transaction = new Models.Transaction
+                        {
+                            AuctionId = id,
+                            BuyerId = winningBid.BidderId,
+                            Amount = winningBid.Amount,
+                            PaymentStatus = Models.PaymentStatus.Pending,
+                            OrderDate = DateTime.UtcNow,
+                            CreatedAt = DateTime.UtcNow
+                        };
+
+                        _db.Transactions.Add(transaction);
+                        _logger.LogInformation($"Created transaction for auction {id}, buyer {winningBid.BidderId}");
+
+                        // Create notification for winner
+                        var winnerNotification = new Models.Notification
+                        {
+                            UserId = winningBid.BidderId,
+                            Type = Models.NotificationType.AuctionWon,
+                            Title = "Congratulations! You won an auction!",
+                            Message = $"You won the auction for '{auction.Title}' with a bid of ${winningBid.Amount:F2}. Please proceed to payment.",
+                            RelatedEntityId = id,
+                            IsRead = false,
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        _db.Notifications.Add(winnerNotification);
+                        _logger.LogInformation($"Created winner notification for user {winningBid.BidderId}");
+
+                        // Create notification for admin (seller)
+                        var adminUsers = await _db.Users
+                            .Where(u => u.Role == "Admin")
+                            .ToListAsync();
+
+                        foreach (var admin in adminUsers)
+                        {
+                            var adminNotification = new Models.Notification
+                            {
+                                UserId = admin.Id,
+                                Type = Models.NotificationType.AuctionEnded,
+                                Title = "Auction Closed",
+                                Message = $"Auction '{auction.Title}' has closed. Winner: {winningBid.Bidder.Username} with ${winningBid.Amount:F2}",
+                                RelatedEntityId = id,
+                                IsRead = false,
+                                CreatedAt = DateTime.UtcNow
+                            };
+                            _db.Notifications.Add(adminNotification);
+                        }
+                        _logger.LogInformation($"Created admin notifications for auction {id}");
+                    }
+                    else
+                    {
+                        _logger.LogWarning($"Transaction already exists for auction {id}");
+                    }
+                }
+            }
+            else
+            {
+                _logger.LogInformation($"Auction {id} closed with no bids");
+                
+                // Notify admin that auction ended without bids
+                var adminUsers = await _db.Users
+                    .Where(u => u.Role == "Admin")
+                    .ToListAsync();
+
+                foreach (var admin in adminUsers)
+                {
+                    var notification = new Models.Notification
+                    {
+                        UserId = admin.Id,
+                        Type = Models.NotificationType.AuctionEnded,
+                        Title = "Auction Closed - No Bids",
+                        Message = $"Auction '{auction.Title}' has closed without any bids.",
+                        RelatedEntityId = id,
+                        IsRead = false,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    _db.Notifications.Add(notification);
+                }
+            }
+
             await _db.SaveChangesAsync();
-            
-            // Note: Transaction creation is handled by AuctionClosingService background job
+            _logger.LogInformation($"Auction {id} closed successfully");
         }
 
         public async Task<AuctionResponseDto?> UpdateAsync(int id, AuctionUpdateDto dto, int userId, bool isAdmin)
@@ -217,7 +347,7 @@ namespace AuctionHouse.Api.Services
                     Status = a.Status,
                     CategoryName = a.Category != null ? a.Category.Name : "Uncategorized",
                     CategoryId = a.CategoryId ?? 0,
-                    PrimaryImageUrl = a.Images.OrderBy(i => i.Id).FirstOrDefault() != null ? a.Images.OrderBy(i => i.Id).FirstOrDefault()!.Url : null,
+                    PrimaryImageUrl = a.Images.OrderBy(i => i.IsPrimary ? 0 : 1).ThenBy(i => i.DisplayOrder).FirstOrDefault() != null ? a.Images.OrderBy(i => i.IsPrimary ? 0 : 1).ThenBy(i => i.DisplayOrder).FirstOrDefault()!.Url : null,
                     BidCount = a.Bids.Count
                 })
                 .OrderByDescending(a => a.StartTime)

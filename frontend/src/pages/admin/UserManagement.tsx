@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Search, Filter, MoreHorizontal, Eye, Edit, Ban, CheckCircle, XCircle, Download } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Filter, MoreHorizontal, Eye, Edit, Ban, CheckCircle, XCircle, Download, Loader2, AlertTriangle, Trash2, Plus, UserPlus } from 'lucide-react';
 import { Button } from '../../components/button';
 import { Input } from '../../components/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/card';
@@ -8,110 +8,226 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/table';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/avatar';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../../components/dialog';
+import { Label } from '../../components/label';
+import { useAuth } from '../../contexts/AuthContext';
+import { adminApi } from '../../services/adminApi';
+import { toast } from 'sonner';
+
+interface User {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+  isActive: boolean;
+  createdAt: string;
+  deletedAt?: string;
+}
 
 export function UserManagement() {
+  const { token, user: currentUser } = useAuth();
+  const [users, setUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize] = useState(50);
+  const [totalUsers, setTotalUsers] = useState(0);
+  
+  // Create user dialog state
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [newUser, setNewUser] = useState({
+    username: '',
+    email: '',
+    password: '',
+    role: 'User' // Default to "User" role
+  });
+  const [isCreating, setIsCreating] = useState(false);
 
-  const users = [
-    {
-      id: '1',
-      name: 'John Smith',
-      email: 'john.smith@email.com',
-      joinDate: '2024-01-15',
-      status: 'active',
-      totalBids: 47,
-      wonAuctions: 12,
-      totalSpent: 15420,
-      verificationStatus: 'verified',
-      lastActivity: '2 hours ago',
-      avatar: null
-    },
-    {
-      id: '2',
-      name: 'Sarah Johnson',
-      email: 'sarah.j@email.com',
-      joinDate: '2024-02-03',
-      status: 'active',
-      totalBids: 23,
-      wonAuctions: 5,
-      totalSpent: 8950,
-      verificationStatus: 'verified',
-      lastActivity: '1 day ago',
-      avatar: null
-    },
-    {
-      id: '3',
-      name: 'Michael Chen',
-      email: 'michael.chen@email.com',
-      joinDate: '2024-01-28',
-      status: 'suspended',
-      totalBids: 156,
-      wonAuctions: 34,
-      totalSpent: 45600,
-      verificationStatus: 'pending',
-      lastActivity: '1 week ago',
-      avatar: null
-    },
-    {
-      id: '4',
-      name: 'Emma Wilson',
-      email: 'emma.wilson@email.com',
-      joinDate: '2024-03-10',
-      status: 'active',
-      totalBids: 8,
-      wonAuctions: 2,
-      totalSpent: 2340,
-      verificationStatus: 'unverified',
-      lastActivity: '3 hours ago',
-      avatar: null
-    },
-    {
-      id: '5',
-      name: 'David Rodriguez',
-      email: 'david.r@email.com',
-      joinDate: '2023-11-20',
-      status: 'inactive',
-      totalBids: 89,
-      wonAuctions: 18,
-      totalSpent: 28750,
-      verificationStatus: 'verified',
-      lastActivity: '2 weeks ago',
-      avatar: null
-    }
-  ];
+  // Fetch users from backend
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (!token) return;
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
-      case 'suspended':
-        return <Badge className="bg-red-100 text-red-800">Suspended</Badge>;
-      case 'inactive':
-        return <Badge className="bg-gray-100 text-gray-800">Inactive</Badge>;
-      default:
-        return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
+      try {
+        setLoading(true);
+        setError(null);
+        const data: any = await adminApi.getAllUsers(token, pageNumber, pageSize, searchTerm || undefined);
+        setUsers(data.items || data || []);
+        setTotalUsers(data.totalCount || data.length || 0);
+      } catch (err: any) {
+        console.error('Error fetching users:', err);
+        setError(err.message || 'Failed to load users');
+        toast.error('Failed to load users');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, [token, pageNumber, pageSize, searchTerm]);
+
+  // Refresh users list
+  const refreshUsers = async () => {
+    if (!token) return;
+    try {
+      const data: any = await adminApi.getAllUsers(token, pageNumber, pageSize, searchTerm || undefined);
+      setUsers(data.items || data || []);
+    } catch (err) {
+      console.error('Error refreshing users:', err);
     }
   };
 
-  const getVerificationBadge = (status: string) => {
-    switch (status) {
-      case 'verified':
-        return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case 'pending':
-        return <XCircle className="w-4 h-4 text-orange-600" />;
-      case 'unverified':
-        return <XCircle className="w-4 h-4 text-gray-400" />;
-      default:
-        return <XCircle className="w-4 h-4 text-gray-400" />;
+  // Handle user actions
+  const handleSuspendUser = async (userId: number) => {
+    if (!token) {
+      toast.error('Authentication required');
+      return;
+    }
+
+    // Prevent self-suspension
+    if (currentUser && parseInt(currentUser.id) === userId) {
+      toast.error('You cannot suspend your own account');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to suspend this user?')) return;
+
+    try {
+      const reason = prompt('Enter suspension reason:') || 'No reason provided';
+      if (!reason) return; // User cancelled
+      
+      console.log('Suspending user:', userId, 'Reason:', reason);
+      await adminApi.suspendUser(userId, reason, token);
+      toast.success('User suspended successfully');
+      await refreshUsers();
+    } catch (err: any) {
+      console.error('Error suspending user:', err);
+      toast.error(err.message || 'Failed to suspend user');
     }
   };
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const handleActivateUser = async (userId: number) => {
+    if (!token) {
+      toast.error('Authentication required');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to activate this user?')) return;
+
+    try {
+      console.log('Activating user:', userId);
+      await adminApi.activateUser(userId, token);
+      toast.success('User activated successfully');
+      await refreshUsers();
+    } catch (err: any) {
+      console.error('Error activating user:', err);
+      toast.error(err.message || 'Failed to activate user');
+    }
+  };
+
+  const handleDeleteUser = async (userId: number) => {
+    if (!token) {
+      toast.error('Authentication required');
+      return;
+    }
+
+    // Prevent self-deletion
+    if (currentUser && parseInt(currentUser.id) === userId) {
+      toast.error('You cannot delete your own account');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to permanently delete this user? This action cannot be undone and the user will be removed from the database.')) return;
+
+    try {
+      console.log('Deleting user:', userId);
+      await adminApi.deleteUser(userId, token);
+      toast.success('User permanently deleted from database');
+      await refreshUsers();
+    } catch (err: any) {
+      console.error('Error deleting user:', err);
+      toast.error(err.message || 'Failed to delete user');
+    }
+  };
+
+  // Handle create user
+  const handleCreateUser = async () => {
+    if (!token) {
+      toast.error('Authentication required');
+      return;
+    }
+
+    // Validation
+    if (!newUser.username || !newUser.email || !newUser.password) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    if (newUser.password.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+
+    try {
+      setIsCreating(true);
+      await adminApi.createUser(newUser, token);
+      toast.success('User created successfully');
+      setIsCreateDialogOpen(false);
+      setNewUser({ username: '', email: '', password: '', role: 'User' }); // Reset to default "User" role
+      await refreshUsers();
+    } catch (err: any) {
+      console.error('Error creating user:', err);
+      toast.error(err.message || 'Failed to create user');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  // Handle update user role
+  const handleUpdateRole = async (userId: number, newRole: string) => {
+    if (!token) {
+      toast.error('Authentication required');
+      return;
+    }
+
+    try {
+      await adminApi.updateUserRole(userId, newRole, token);
+      toast.success(`User role updated to ${newRole}`);
+      await refreshUsers();
+    } catch (err: any) {
+      console.error('Error updating user role:', err);
+      toast.error(err.message || 'Failed to update user role');
+    }
+  };
+
+  const getStatusBadge = (user: User) => {
+    const status = getUserStatus(user);
+    const statusColors = {
+      active: 'bg-green-100 text-green-800',
+      suspended: 'bg-orange-100 text-orange-800',
+      deleted: 'bg-red-100 text-red-800',
+      inactive: 'bg-gray-100 text-gray-800',
+    };
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[status as keyof typeof statusColors]}`}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </span>
+    );
+  };
+
+  // Get user status from backend fields
+  const getUserStatus = (user: User): string => {
+    if (user.deletedAt) return 'deleted';
+    return user.isActive ? 'active' : 'suspended';
+  };
+
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch = user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || getUserStatus(user) === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -123,35 +239,118 @@ export function UserManagement() {
           <h1 className="text-2xl font-semibold text-gray-900">User Management</h1>
           <p className="text-gray-600 mt-1">Manage user accounts and permissions</p>
         </div>
-        <Button className="bg-black text-white hover:bg-gray-800">
-          <Download className="w-4 h-4 mr-2" />
-          Export Users
-        </Button>
+        <div className="flex gap-3">
+          <Button 
+            className="bg-blue-600 text-white hover:bg-blue-700"
+            onClick={() => setIsCreateDialogOpen(true)}
+          >
+            <UserPlus className="w-4 h-4 mr-2" />
+            Create User
+          </Button>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create New User</DialogTitle>
+                <DialogDescription>
+                  Add a new user to the system with a specific role
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    placeholder="Enter username"
+                    value={newUser.username}
+                    onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Enter email"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Enter password (min 6 characters)"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="role">Role</Label>
+                  <Select value={newUser.role} onValueChange={(value: string) => setNewUser({ ...newUser, role: value })}>
+                    <SelectTrigger id="role">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="User">User</SelectItem>
+                      <SelectItem value="Admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} disabled={isCreating}>
+                  Cancel
+                </Button>
+                <Button onClick={handleCreateUser} disabled={isCreating}>
+                  {isCreating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    'Create User'
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <Button className="bg-black text-white hover:bg-gray-800">
+            <Download className="w-4 h-4 mr-2" />
+            Export Users
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-semibold text-gray-900">12,847</div>
+            <div className="text-2xl font-semibold text-gray-900">{totalUsers.toLocaleString()}</div>
             <div className="text-sm text-gray-600">Total Users</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-semibold text-green-600">11,234</div>
+            <div className="text-2xl font-semibold text-green-600">
+              {users.filter(u => u.isActive && !u.deletedAt).length.toLocaleString()}
+            </div>
             <div className="text-sm text-gray-600">Active Users</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-semibold text-orange-600">234</div>
-            <div className="text-sm text-gray-600">Pending Verification</div>
+            <div className="text-2xl font-semibold text-orange-600">
+              {users.filter(u => !u.isActive && !u.deletedAt).length.toLocaleString()}
+            </div>
+            <div className="text-sm text-gray-600">Inactive</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-semibold text-red-600">156</div>
+            <div className="text-2xl font-semibold text-red-600">
+              {users.filter(u => u.deletedAt).length.toLocaleString()}
+            </div>
             <div className="text-sm text-gray-600">Suspended</div>
           </CardContent>
         </Card>
@@ -183,6 +382,7 @@ export function UserManagement() {
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="suspended">Suspended</SelectItem>
+                  <SelectItem value="deleted">Deleted</SelectItem>
                   <SelectItem value="inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
@@ -203,98 +403,161 @@ export function UserManagement() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Verification</TableHead>
-                  <TableHead>Activity</TableHead>
-                  <TableHead>Total Spent</TableHead>
-                  <TableHead>Last Active</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.map((user) => (
+          {/* Loading State */}
+          {loading && (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+              <span className="ml-3 text-gray-600">Loading users...</span>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && !loading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to Load Users</h3>
+                <p className="text-gray-600 mb-4">{error}</p>
+                <Button onClick={() => window.location.reload()}>
+                  Retry
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Users Table */}
+          {!loading && !error && (
+            <div className="relative">
+              <div className="overflow-x-auto">
+                <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Joined Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                        No users found matching your criteria
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>
                       <div className="flex items-center space-x-3">
                         <Avatar className="w-10 h-10">
-                          <AvatarImage src={user.avatar} />
                           <AvatarFallback className="bg-gray-200">
-                            {user.name.split(' ').map(n => n[0]).join('')}
+                            {user.username.charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <div className="font-medium text-gray-900">{user.name}</div>
+                          <div className="font-medium text-gray-900">{user.username}</div>
                           <div className="text-sm text-gray-500">{user.email}</div>
-                          <div className="text-xs text-gray-400">Joined {user.joinDate}</div>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      {getStatusBadge(user.status)}
+                      {getStatusBadge(user)}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center space-x-2">
-                        {getVerificationBadge(user.verificationStatus)}
-                        <span className="text-sm text-gray-600 capitalize">
-                          {user.verificationStatus}
-                        </span>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 capitalize">
+                        {user.role}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm text-gray-600">
+                        {new Date(user.createdAt).toLocaleDateString()}
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <div>{user.totalBids} bids</div>
-                        <div className="text-gray-500">{user.wonAuctions} won</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">${user.totalSpent.toLocaleString()}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm text-gray-600">{user.lastActivity}</div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu>
+                      <DropdownMenu modal={false}>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                             <MoreHorizontal className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" sideOffset={5}>
                           <DropdownMenuItem>
                             <Eye className="w-4 h-4 mr-2" />
                             View Profile
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Edit className="w-4 h-4 mr-2" />
-                            Edit User
-                          </DropdownMenuItem>
-                          {user.status === 'active' ? (
-                            <DropdownMenuItem className="text-red-600">
+                          {currentUser && parseInt(currentUser.id) === user.id ? (
+                            <DropdownMenuItem disabled className="text-gray-400">
                               <Ban className="w-4 h-4 mr-2" />
-                              Suspend User
+                              Cannot modify own account
+                            </DropdownMenuItem>
+                          ) : getUserStatus(user) === 'deleted' ? (
+                            <DropdownMenuItem disabled className="text-gray-400">
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              User Deleted
                             </DropdownMenuItem>
                           ) : (
-                            <DropdownMenuItem className="text-green-600">
-                              <CheckCircle className="w-4 h-4 mr-2" />
-                              Activate User
-                            </DropdownMenuItem>
+                            <>
+                              <div className="px-2 py-1.5 text-xs font-semibold text-gray-500">Change Role</div>
+                              {user.role !== 'User' && (
+                                <DropdownMenuItem 
+                                  onClick={() => handleUpdateRole(user.id, 'User')}
+                                >
+                                  <UserPlus className="w-4 h-4 mr-2" />
+                                  Set as User
+                                </DropdownMenuItem>
+                              )}
+                              {user.role !== 'Admin' && (
+                                <DropdownMenuItem 
+                                  onClick={() => handleUpdateRole(user.id, 'Admin')}
+                                >
+                                  <UserPlus className="w-4 h-4 mr-2" />
+                                  Set as Admin
+                                </DropdownMenuItem>
+                              )}
+                              <div className="my-1 h-px bg-gray-200" />
+                              {getUserStatus(user) === 'active' ? (
+                                <DropdownMenuItem 
+                                  className="text-orange-600"
+                                  onClick={() => handleSuspendUser(user.id)}
+                                >
+                                  <Ban className="w-4 h-4 mr-2" />
+                                  Suspend User
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem 
+                                  className="text-green-600"
+                                  onClick={() => handleActivateUser(user.id)}
+                                >
+                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                  Activate User
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem 
+                                className="text-red-600"
+                                onClick={() => handleDeleteUser(user.id)}
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete User
+                              </DropdownMenuItem>
+                            </>
                           )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+              </div>
+            </div>
+          )}
           
           {/* Pagination */}
-          <div className="flex items-center justify-between mt-6">
+          {!loading && !error && filteredUsers.length > 0 && (
+            <div className="flex items-center justify-between mt-6">
             <div className="text-sm text-gray-500">
               Showing {filteredUsers.length} of {users.length} users
             </div>
@@ -315,7 +578,8 @@ export function UserManagement() {
                 Next
               </Button>
             </div>
-          </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

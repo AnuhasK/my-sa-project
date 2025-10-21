@@ -8,7 +8,9 @@ import {
   HelpCircle,
   Menu,
   X,
-  LogOut
+  LogOut,
+  Tag,
+  Package
 } from 'lucide-react';
 import { Button } from '../../components/button';
 import { useState } from 'react';
@@ -16,16 +18,19 @@ import { useState } from 'react';
 interface AdminSidebarProps {
   currentPage: string;
   setCurrentPage: (page: string) => void;
-  setIsLoggedIn: (loggedIn: boolean) => void;
+  setIsLoggedIn?: (loggedIn: boolean) => void; // For backward compatibility
+  onLogout?: () => void; // New logout callback
 }
 
-export function AdminSidebar({ currentPage, setCurrentPage, setIsLoggedIn }: AdminSidebarProps) {
+export function AdminSidebar({ currentPage, setCurrentPage, setIsLoggedIn, onLogout }: AdminSidebarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navigationItems = [
     { key: 'admin-dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { key: 'admin-users', label: 'Users', icon: Users },
     { key: 'admin-auctions', label: 'Auctions', icon: Gavel },
+    { key: 'admin-transactions', label: 'Transactions', icon: Package },
+    { key: 'admin-categories', label: 'Categories', icon: Tag },
     { key: 'admin-reports', label: 'Reports', icon: BarChart3 },
     { key: 'admin-notifications', label: 'Notifications', icon: Bell },
     { key: 'admin-settings', label: 'Settings', icon: Settings },
@@ -38,8 +43,12 @@ export function AdminSidebar({ currentPage, setCurrentPage, setIsLoggedIn }: Adm
   };
 
   const handleLogout = () => {
-    setIsLoggedIn(false);
-    setCurrentPage('home');
+    if (onLogout) {
+      onLogout();
+    } else if (setIsLoggedIn) {
+      setIsLoggedIn(false);
+      setCurrentPage('home');
+    }
   };
 
   return (

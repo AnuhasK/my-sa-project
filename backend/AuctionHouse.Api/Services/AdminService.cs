@@ -28,7 +28,7 @@ namespace AuctionHouse.Api.Services
                 ActiveAuctions = await _db.Auctions.CountAsync(a => a.Status == "Open"),
                 TotalBids = await _db.Bids.CountAsync(),
                 TotalTransactions = await _db.Transactions.CountAsync(),
-                TotalRevenue = await _db.Transactions.Where(t => t.PaymentStatus == "Paid").SumAsync(t => (decimal?)t.Amount) ?? 0,
+                TotalRevenue = await _db.Transactions.Where(t => t.PaymentStatus == PaymentStatus.Paid).SumAsync(t => (decimal?)t.Amount) ?? 0,
                 NewUsersToday = await _db.Users.CountAsync(u => u.CreatedAt >= today),
                 NewAuctionsToday = await _db.Auctions.CountAsync(a => a.CreatedAt >= today),
                 AverageAuctionPrice = await _db.Auctions.AverageAsync(a => (decimal?)a.CurrentPrice) ?? 0
@@ -94,7 +94,7 @@ namespace AuctionHouse.Api.Services
                     IsActive = u.IsActive,
                     AuctionsCreated = _db.Auctions.Count(a => a.SellerId == u.Id),
                     BidsPlaced = _db.Bids.Count(b => b.BidderId == u.Id),
-                    AuctionsWon = _db.Transactions.Count(t => t.BuyerId == u.Id && t.PaymentStatus == "Paid")
+                    AuctionsWon = _db.Transactions.Count(t => t.BuyerId == u.Id && t.PaymentStatus == PaymentStatus.Paid)
                 })
                 .ToListAsync();
 
@@ -116,7 +116,7 @@ namespace AuctionHouse.Api.Services
                 IsActive = user.IsActive,
                 AuctionsCreated = await _db.Auctions.CountAsync(a => a.SellerId == userId),
                 BidsPlaced = await _db.Bids.CountAsync(b => b.BidderId == userId),
-                AuctionsWon = await _db.Transactions.CountAsync(t => t.BuyerId == userId && t.PaymentStatus == "Paid")
+                AuctionsWon = await _db.Transactions.CountAsync(t => t.BuyerId == userId && t.PaymentStatus == PaymentStatus.Paid)
             };
 
             // Get recent auctions
@@ -166,7 +166,7 @@ namespace AuctionHouse.Api.Services
                     AuctionTitle = t.Auction.Title,
                     BuyerId = t.BuyerId,
                     Amount = t.Amount,
-                    PaymentStatus = t.PaymentStatus,
+                    PaymentStatus = t.PaymentStatus.ToString(),
                     CreatedAt = t.CreatedAt
                 })
                 .ToListAsync();
@@ -205,12 +205,62 @@ namespace AuctionHouse.Api.Services
             var user = await _db.Users.FindAsync(userId);
             if (user == null) return false;
 
-            // Soft delete
-            user.DeletedAt = DateTime.UtcNow;
-            user.IsActive = false;
+            // Hard delete - permanently remove from database
+            _db.Users.Remove(user);
             await _db.SaveChangesAsync();
 
-            _logger.LogInformation($"User {userId} soft deleted");
+            _logger.LogInformation($"User {userId} permanently deleted");
+
+            return true;
+        }
+
+        public async Task<int> CreateUserAsync(CreateUserDto dto)
+        {
+            // Check if username or email already exists
+            var existingUser = await _db.Users
+                .FirstOrDefaultAsync(u => u.Username == dto.Username || u.Email == dto.Email);
+            
+            if (existingUser != null)
+            {
+                return 0; // User already exists
+            }
+
+            // Hash the password
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+
+            var user = new User
+            {
+                Username = dto.Username,
+                Email = dto.Email,
+                PasswordHash = passwordHash,
+                Role = dto.Role,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _db.Users.Add(user);
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation($"User {user.Id} created by admin");
+
+            return user.Id;
+        }
+
+        public async Task<bool> UpdateUserRoleAsync(int userId, string role)
+        {
+            var user = await _db.Users.FindAsync(userId);
+            if (user == null) return false;
+
+            // Validate role - only "User" or "Admin" allowed
+            if (role != "Admin" && role != "User")
+            {
+                return false;
+            }
+
+            user.Role = role;
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation($"User {userId} role updated to {role}");
 
             return true;
         }
@@ -245,6 +295,26 @@ namespace AuctionHouse.Api.Services
             await _db.SaveChangesAsync();
 
             _logger.LogInformation($"Auction {auctionId} removed by admin. Reason: {reason}");
+
+            return true;
+        }
+
+        public async Task<bool> UpdateAuctionStatusAsync(int auctionId, string status)
+        {
+            var auction = await _db.Auctions.FindAsync(auctionId);
+            if (auction == null) return false;
+
+            // Validate status
+            var validStatuses = new[] { "Open", "Pending", "Closed", "Sold", "Suspended" };
+            if (!validStatuses.Contains(status))
+            {
+                return false;
+            }
+
+            auction.Status = status;
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation($"Auction {auctionId} status changed to {status} by admin");
 
             return true;
         }

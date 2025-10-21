@@ -10,11 +10,10 @@ import { useAuth } from '../../contexts/AuthContext';
 interface AuthFormsProps {
   mode: 'login' | 'register' | 'reset-password';
   setCurrentPage: (page: string) => void;
-  setIsLoggedIn: (loggedIn: boolean) => void;
 }
 
-export function AuthForms({ mode, setCurrentPage, setIsLoggedIn }: AuthFormsProps) {
-  const { login, register, loading } = useAuth();
+export function AuthForms({ mode, setCurrentPage }: AuthFormsProps) {
+  const { login, register, loading, isAdmin } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
@@ -42,7 +41,7 @@ export function AuthForms({ mode, setCurrentPage, setIsLoggedIn }: AuthFormsProp
         });
         
         if (success) {
-          setIsLoggedIn(true);
+          // Redirect will be handled by App.tsx based on role
           setCurrentPage('home');
         } else {
           setError('Invalid email or password');
@@ -70,7 +69,7 @@ export function AuthForms({ mode, setCurrentPage, setIsLoggedIn }: AuthFormsProp
         });
         
         if (success) {
-          setIsLoggedIn(true);
+          // Redirect will be handled by App.tsx based on role
           setCurrentPage('home');
         } else {
           setError('Registration failed. Please try again.');

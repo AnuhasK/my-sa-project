@@ -1,20 +1,31 @@
-import { useState, useEffect } from 'react';
-import { ArrowLeft, Heart, Share2, Eye, User, MapPin, Clock, Gavel, Shield, TrendingUp } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { ArrowLeft, Heart, Share2, Eye, Gavel, Shield, TrendingUp, Link2, Facebook, Twitter, MessageCircle } from 'lucide-react';
 import { Button } from '../../components/button';
 import { Input } from '../../components/input';
 import { Badge } from '../../components/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '../../components/avatar';
+import { Avatar, AvatarFallback } from '../../components/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/card';
 import { CountdownTimer } from './CountdownTimer';
 import { api } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
+import * as signalR from '@microsoft/signalr';
+
+// Helper to convert relative image URLs to full URLs
+const getImageUrl = (relativeUrl: string | undefined) => {
+  if (!relativeUrl || relativeUrl.startsWith('http')) return relativeUrl;
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5021/api';
+  const baseUrl = apiBase.replace(/\/api$/, '');
+  return `${baseUrl}${relativeUrl}`;
+};
 
 interface AuctionDetailsPageProps {
   auctionId: string;
   setCurrentPage: (page: string) => void;
+  isAdmin?: boolean;
 }
 
-export function AuctionDetailsPage({ auctionId, setCurrentPage }: AuctionDetailsPageProps) {
+export function AuctionDetailsPage({ auctionId, setCurrentPage, isAdmin = false }: AuctionDetailsPageProps) {
+  const { user, token } = useAuth();
   const [bidAmount, setBidAmount] = useState('');
   const [selectedImage, setSelectedImage] = useState(0);
   const [isWatching, setIsWatching] = useState(false);
@@ -23,58 +34,130 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage }: AuctionDetails
   const [error, setError] = useState<string | null>(null);
   const [bidHistory, setBidHistory] = useState<any[]>([]);
   const [watchersCount, setWatchersCount] = useState(0);
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const connectionRef = useRef<signalR.HubConnection | null>(null);
 
-  // Check if auction is in watchlist when component loads
+  // Close share menu when clicking outside
   useEffect(() => {
-    const checkWatchlistStatus = async () => {
-      try {
-        const token = localStorage.getItem('authToken');
-        if (token && auctionId) {
-          const response = await api.checkWatchlist(auctionId, token);
-          setIsWatching(response.isInWatchlist);
-        }
-      } catch (error) {
-        console.error('Error checking watchlist status:', error);
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showShareMenu && !target.closest('.share-menu-container')) {
+        setShowShareMenu(false);
       }
     };
 
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showShareMenu]);
+
+  // Check if auction is in watchlist on mount
+  useEffect(() => {
+    const checkWatchlistStatus = async () => {
+      if (token) {
+        try {
+          console.log(`🔍 Checking watchlist status for auction ${auctionId}`);
+          const watched = await api.checkWatchlist(auctionId, token);
+          console.log(`Watchlist status for auction ${auctionId}:`, watched);
+          setIsWatching(watched);
+        } catch (error) {
+          console.error('Error checking watchlist status:', error);
+          setIsWatching(false); // Default to not watched on error
+        }
+      }
+    };
+    
     const fetchWatchersCount = async () => {
       try {
-        if (auctionId) {
-          const response = await api.getWatchersCount(auctionId);
-          setWatchersCount(response.watchersCount);
-        }
+        const count = await api.getWatchersCount(auctionId);
+        console.log(`Watchers count for auction ${auctionId}:`, count);
+        setWatchersCount(count);
       } catch (error) {
         console.error('Error fetching watchers count:', error);
       }
     };
-
+    
     checkWatchlistStatus();
     fetchWatchersCount();
-  }, [auctionId]);
+  }, [auctionId, token]);
 
   // Handle watchlist toggle
   const handleWatchlistToggle = async () => {
     try {
-      const token = localStorage.getItem('authToken');
-      if (!token) {
+      const currentToken = localStorage.getItem('token');
+      console.log('Watchlist toggle clicked on details page');
+      console.log('Current state - isWatching:', isWatching);
+      console.log('Token exists:', !!currentToken);
+      
+      if (!currentToken) {
         alert('Please login to add items to your watchlist');
         return;
       }
 
       if (isWatching) {
-        await api.removeFromWatchlist(auctionId, token);
-        setIsWatching(false);
-        setWatchersCount(prev => Math.max(0, prev - 1));
+        console.log(`Attempting to remove auction ${auctionId} from watchlist`);
+        try {
+          await api.removeFromWatchlist(auctionId, currentToken);
+          setIsWatching(false);
+          setWatchersCount(prev => Math.max(0, prev - 1));
+          console.log('Removed from watchlist');
+        } catch (removeError: any) {
+          console.error('Remove failed:', removeError);
+          // If it's a 404, it means it wasn't in the watchlist to begin with
+          if (removeError.message?.includes('404') || removeError.message?.includes('not found')) {
+            console.log('Item was not in watchlist, syncing state');
+            setIsWatching(false); // Sync the state
+          } else {
+            throw removeError; // Re-throw other errors
+          }
+        }
       } else {
-        await api.addToWatchlist(auctionId, token);
+        console.log(`Attempting to add auction ${auctionId} to watchlist`);
+        await api.addToWatchlist(auctionId, currentToken);
         setIsWatching(true);
         setWatchersCount(prev => prev + 1);
+        console.log('Added to watchlist');
       }
     } catch (error) {
       console.error('Error toggling watchlist:', error);
       alert('Failed to update watchlist. Please try again.');
     }
+  };
+
+  // Share functionality
+  const getShareUrl = () => {
+    return `${window.location.origin}/#auction-details-${auctionId}`;
+  };
+
+  const handleShareFacebook = () => {
+    const url = getShareUrl();
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+    setShowShareMenu(false);
+  };
+
+  const handleShareWhatsApp = () => {
+    const url = getShareUrl();
+    const text = `Check out this auction: ${auction?.title}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`, '_blank');
+    setShowShareMenu(false);
+  };
+
+  const handleShareTwitter = () => {
+    const url = getShareUrl();
+    const text = `Check out this auction: ${auction?.title}`;
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+    setShowShareMenu(false);
+  };
+
+  const handleCopyLink = async () => {
+    const url = getShareUrl();
+    try {
+      await navigator.clipboard.writeText(url);
+      alert('Link copied to clipboard!');
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      alert('Failed to copy link');
+    }
+    setShowShareMenu(false);
   };
 
   // Fetch auction details from backend
@@ -95,27 +178,14 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage }: AuctionDetails
           minBid: auctionData.currentPrice ? auctionData.currentPrice + 50 : auctionData.startPrice + 50,
           buyNowPrice: null, // Not in backend DTO currently
           timeLeft: new Date(auctionData.endTime),
-          images: auctionData.imageUrls && auctionData.imageUrls.length > 0 ? auctionData.imageUrls : [
-            'https://images.unsplash.com/photo-1695528589305-5103f5c52306?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aW50YWdlJTIwd2F0Y2glMjBsdXh1cnklMjBhdWN0aW9ufGVufDF8fHx8MTc1NzUwMDE3Nnww&ixlib=rb-4.1.0&q=80&w=1080'
-          ],
-          category: auctionData.category || 'General',
+          images: auctionData.imageUrls && auctionData.imageUrls.length > 0 ? auctionData.imageUrls : ['/img/placeholder-auction.jpg'],
+          category: auctionData.categoryName || 'Uncategorized',
+          status: auctionData.status || 'Open',
           condition: auctionData.condition || 'Good',
           views: auctionData.views || 0,
           watchers: auctionData.watchers || 0,
           bids: auctionData.bidCount || 0,
-          description: auctionData.description || 'No description available.',
-          seller: {
-            name: auctionData.seller?.username || auctionData.sellerName || 'Anonymous',
-            rating: 4.8,
-            reviews: 120,
-            memberSince: '2020',
-            location: 'Location not specified',
-            avatar: null
-          },
-          shipping: {
-            cost: 25,
-            methods: ['Standard Shipping', 'Express Shipping']
-          }
+          description: auctionData.description || 'No description available.'
         };
         
         setAuction(transformedAuction);
@@ -123,11 +193,19 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage }: AuctionDetails
         // Also fetch bid history if available
         try {
           const bidsData = await api.getBidsForAuction(auctionId);
-          const transformedBids = bidsData.map((bid: any, index: number) => ({
-            bidder: `${bid.bidder?.username?.substring(0, 1)}***${bid.bidder?.username?.slice(-1)}` || `u***r`,
-            amount: bid.amount,
-            time: formatTimeAgo(bid.createdAt)
-          }));
+          console.log('Raw bids data from API:', bidsData);
+          
+          const transformedBids = bidsData.map((bid: any) => {
+            console.log('Transforming bid:', bid);
+            // Handle both camelCase (System.Text.Json default) and PascalCase
+            return {
+              bidder: bid.bidderName || bid.BidderName || 'Anonymous',
+              amount: bid.amount || bid.Amount || 0,
+              time: formatTimeAgo(bid.timestamp || bid.Timestamp)
+            };
+          });
+          
+          console.log('Transformed bids:', transformedBids);
           setBidHistory(transformedBids);
         } catch (bidError) {
           console.log('Could not fetch bid history:', bidError);
@@ -147,35 +225,173 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage }: AuctionDetails
     }
   }, [auctionId]);
 
+  // SignalR real-time updates
+  useEffect(() => {
+    if (!auctionId) return;
+
+    // Create SignalR connection
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl('http://localhost:5021/hubs/auction')
+      .withAutomaticReconnect()
+      .build();
+
+    connectionRef.current = connection;
+
+    // Start connection and join auction group
+    connection.start()
+      .then(() => {
+        console.log('SignalR connected');
+        return connection.invoke('JoinAuction', auctionId);
+      })
+      .then(() => {
+        console.log(`Joined auction group: ${auctionId}`);
+      })
+      .catch(err => console.error('SignalR connection error:', err));
+
+    // Listen for bid placed events
+    connection.on('BidPlaced', (data: any) => {
+      console.log('Real-time bid received:', data);
+      
+      // Handle both camelCase and PascalCase from SignalR
+      const bidAmount = data.amount || data.Amount;
+      console.log('Extracted bid amount:', bidAmount);
+      
+      if (!bidAmount) {
+        console.error('No valid amount in SignalR data:', data);
+        return;
+      }
+      
+      // Update auction current price and bid count
+      setAuction((prev: any) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          currentBid: bidAmount,
+          minBid: bidAmount + 50,
+          bids: prev.bids + 1
+        };
+      });
+
+      // Refresh bid history
+      api.getBidsForAuction(auctionId)
+        .then(bidsData => {
+          const transformedBids = bidsData.map((bid: any) => ({
+            bidder: bid.bidderName || bid.BidderName || 'Anonymous',
+            amount: bid.amount || bid.Amount || 0,
+            time: formatTimeAgo(bid.timestamp || bid.Timestamp)
+          }));
+          setBidHistory(transformedBids);
+        })
+        .catch(err => console.error('Error refreshing bid history:', err));
+    });
+
+    // Cleanup on unmount
+    return () => {
+      if (connectionRef.current) {
+        connectionRef.current.invoke('LeaveAuction', auctionId)
+          .catch(err => console.error('Error leaving auction:', err));
+        connectionRef.current.stop()
+          .catch(err => console.error('Error stopping SignalR:', err));
+      }
+    };
+  }, [auctionId]);
+
   // Helper function to format time ago
   const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    
-    const minutes = Math.floor(diff / (1000 * 60));
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    
-    if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
-    if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-    if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-    return 'Just now';
+    try {
+      if (!dateString) return 'Just now';
+      
+      // Ensure the date string is treated as UTC if it doesn't have timezone info
+      let normalizedDateString = dateString;
+      if (!dateString.endsWith('Z') && !dateString.includes('+') && !dateString.includes('T')) {
+        // If it's just a date without timezone, assume UTC
+        normalizedDateString = dateString + 'Z';
+      } else if (dateString.includes('T') && !dateString.endsWith('Z') && !dateString.includes('+') && !dateString.includes('-', 10)) {
+        // If it has T but no timezone indicator, add Z
+        normalizedDateString = dateString + 'Z';
+      }
+      
+      const date = new Date(normalizedDateString);
+      if (isNaN(date.getTime())) return 'Just now';
+      
+      const now = new Date();
+      const diff = now.getTime() - date.getTime();
+      
+      const minutes = Math.floor(diff / (1000 * 60));
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      
+      if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
+      if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+      if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+      return 'Just now';
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return 'Just now';
+    }
   };
 
   const handlePlaceBid = async () => {
     const bid = parseFloat(bidAmount);
-    if (bid >= auction.minBid) {
+    
+    if (!bid || bid < auction.minBid) {
+      alert(`Bid must be at least $${auction.minBid}`);
+      return;
+    }
+
+    if (!token || !user) {
+      alert('Please login to place a bid');
+      setCurrentPage('login');
+      return;
+    }
+
+    try {
+      // Place bid via API
+      await api.placeBid(auctionId, bid, token);
+      
+      // Clear bid input
+      setBidAmount('');
+      
+      // Refresh auction details to show updated price and bid count
+      const auctionData = await api.getAuction(auctionId);
+      const transformedAuction = {
+        id: auctionData.id,
+        title: auctionData.title,
+        currentBid: auctionData.currentPrice || auctionData.startPrice || 0,
+        minBid: auctionData.currentPrice ? auctionData.currentPrice + 50 : auctionData.startPrice + 50,
+        buyNowPrice: null,
+        timeLeft: new Date(auctionData.endTime),
+        images: auctionData.imageUrls && auctionData.imageUrls.length > 0 ? auctionData.imageUrls : auction.images,
+        category: auctionData.categoryName || 'Uncategorized',
+        status: auctionData.status || 'Open',
+        condition: auctionData.condition || 'Good',
+        views: auctionData.views || 0,
+        watchers: auctionData.watchers || 0,
+        bids: auctionData.bidCount || 0,
+        description: auctionData.description || 'No description available.',
+        seller: auction.seller,
+        shipping: auction.shipping
+      };
+      setAuction(transformedAuction);
+      
+      // Refresh bid history
       try {
-        // TODO: Implement bid placement with authentication
-        console.log('Placing bid:', bid);
-        // await api.placeBid(auctionId, bid, userToken);
-        setBidAmount('');
-        // Refresh auction data after bid
-        // await fetchAuctionDetails();
-      } catch (error) {
-        console.error('Error placing bid:', error);
+        const bidsData = await api.getBidsForAuction(auctionId);
+        const transformedBids = bidsData.map((bid: any) => ({
+          bidder: bid.bidderName || bid.BidderName || 'Anonymous',
+          amount: bid.amount || bid.Amount || 0,
+          time: formatTimeAgo(bid.timestamp || bid.Timestamp)
+        }));
+        setBidHistory(transformedBids);
+      } catch (bidError) {
+        console.log('Could not fetch bid history:', bidError);
       }
+      
+      alert('Bid placed successfully!');
+    } catch (error: any) {
+      console.error('Error placing bid:', error);
+      const errorMessage = error.message || 'Failed to place bid. Please try again.';
+      alert(errorMessage);
     }
   };
 
@@ -220,7 +436,7 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage }: AuctionDetails
               {/* Main Image */}
               <div className="relative">
                 <img
-                  src={auction.images[selectedImage]}
+                  src={getImageUrl(auction.images[selectedImage])}
                   alt={auction.title}
                   className="w-full h-96 md:h-[500px] object-cover rounded-lg border border-gray-200"
                 />
@@ -234,9 +450,52 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage }: AuctionDetails
                   >
                     <Heart className={`w-4 h-4 ${isWatching ? 'fill-current' : ''}`} />
                   </Button>
-                  <Button variant="secondary" size="sm" className="bg-white/90">
-                    <Share2 className="w-4 h-4" />
-                  </Button>
+                  
+                  {/* Share Button with Dropdown */}
+                  <div className="relative share-menu-container">
+                    <Button 
+                      variant="secondary" 
+                      size="sm" 
+                      className="bg-white/90"
+                      onClick={() => setShowShareMenu(!showShareMenu)}
+                    >
+                      <Share2 className="w-4 h-4" />
+                    </Button>
+                    
+                    {showShareMenu && (
+                      <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                        <button
+                          onClick={handleShareFacebook}
+                          className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center space-x-2 text-sm"
+                        >
+                          <Facebook className="w-4 h-4 text-blue-600" />
+                          <span>Share on Facebook</span>
+                        </button>
+                        <button
+                          onClick={handleShareWhatsApp}
+                          className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center space-x-2 text-sm"
+                        >
+                          <MessageCircle className="w-4 h-4 text-green-600" />
+                          <span>Share on WhatsApp</span>
+                        </button>
+                        <button
+                          onClick={handleShareTwitter}
+                          className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center space-x-2 text-sm"
+                        >
+                          <Twitter className="w-4 h-4 text-blue-400" />
+                          <span>Share on Twitter</span>
+                        </button>
+                        <hr className="my-2" />
+                        <button
+                          onClick={handleCopyLink}
+                          className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center space-x-2 text-sm"
+                        >
+                          <Link2 className="w-4 h-4 text-gray-600" />
+                          <span>Copy Link</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -251,7 +510,7 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage }: AuctionDetails
                     }`}
                   >
                     <img
-                      src={image}
+                      src={getImageUrl(image)}
                       alt={`View ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
@@ -259,64 +518,18 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage }: AuctionDetails
                 ))}
               </div>
 
-              {/* Item Details Tabs */}
+              {/* Item Description */}
               <Card className="mt-8">
-                <Tabs defaultValue="description" className="w-full">
-                  <CardHeader>
-                    <TabsList className="grid w-full grid-cols-3">
-                      <TabsTrigger value="description">Description</TabsTrigger>
-                      <TabsTrigger value="shipping">Shipping</TabsTrigger>
-                      <TabsTrigger value="seller">Seller Info</TabsTrigger>
-                    </TabsList>
-                  </CardHeader>
-                  <CardContent>
-                    <TabsContent value="description" className="space-y-4">
-                      <div className="prose prose-gray max-w-none">
-                        <div className="whitespace-pre-line text-gray-700 leading-relaxed">
-                          {auction.description}
-                        </div>
-                      </div>
-                    </TabsContent>
-                    <TabsContent value="shipping" className="space-y-4">
-                      <div className="space-y-3">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Shipping Cost:</span>
-                          <span className="font-medium">${auction.shipping.cost}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-600 block mb-2">Available Methods:</span>
-                          <ul className="space-y-1">
-                            {auction.shipping.methods.map((method: string, index: number) => (
-                              <li key={index} className="text-sm text-gray-700">• {method}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                    </TabsContent>
-                    <TabsContent value="seller" className="space-y-4">
-                      <div className="flex items-center space-x-4">
-                        <Avatar className="w-16 h-16">
-                          <AvatarImage src={auction.seller.avatar} />
-                          <AvatarFallback className="bg-gray-200">
-                            {auction.seller.name.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <h3 className="font-semibold text-gray-900">{auction.seller.name}</h3>
-                          <div className="flex items-center space-x-2 text-sm text-gray-600">
-                            <span>⭐ {auction.seller.rating}</span>
-                            <span>•</span>
-                            <span>{auction.seller.reviews} reviews</span>
-                          </div>
-                          <div className="flex items-center space-x-1 text-sm text-gray-600 mt-1">
-                            <MapPin className="w-3 h-3" />
-                            <span>{auction.seller.location}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </TabsContent>
-                  </CardContent>
-                </Tabs>
+                <CardHeader>
+                  <CardTitle className="text-lg">Description</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="prose prose-gray max-w-none">
+                    <div className="whitespace-pre-line text-gray-700 leading-relaxed">
+                      {auction.description}
+                    </div>
+                  </div>
+                </CardContent>
               </Card>
             </div>
           </div>
@@ -327,19 +540,40 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage }: AuctionDetails
             <Card>
               <CardHeader>
                 <div className="space-y-2">
-                  <Badge variant="secondary" className="w-fit">
-                    {auction.category}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="w-fit">
+                      {auction.category}
+                    </Badge>
+                    {auction.status && (
+                      <Badge 
+                        className={`w-fit ${
+                          auction.status === 'Open' ? 'bg-green-100 text-green-800' :
+                          auction.status === 'Closed' ? 'bg-gray-100 text-gray-800' :
+                          auction.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-blue-100 text-blue-800'
+                        }`}
+                      >
+                        {auction.status}
+                      </Badge>
+                    )}
+                  </div>
                   <CardTitle className="text-xl leading-tight">{auction.title}</CardTitle>
                   <div className="flex items-center space-x-4 text-sm text-gray-600">
                     <div className="flex items-center space-x-1">
                       <Eye className="w-4 h-4" />
                       <span>{auction.views} views</span>
                     </div>
-                    <div className="flex items-center space-x-1">
-                      <Heart className="w-4 h-4" />
+                    <button
+                      type="button"
+                      onClick={handleWatchlistToggle}
+                      className={`flex items-center space-x-1 p-2 rounded-full transition-all duration-200 z-10 ${
+                        isWatching ? 'bg-red-500 text-white' : 'bg-black/60 text-white hover:bg-black/80'
+                      }`}
+                      title={isWatching ? 'Remove from watchlist' : 'Add to watchlist'}
+                    >
+                      <Heart className={`w-4 h-4 ${isWatching ? 'fill-current' : ''}`} />
                       <span>{watchersCount} watching</span>
-                    </div>
+                    </button>
                   </div>
                 </div>
               </CardHeader>
@@ -348,10 +582,10 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage }: AuctionDetails
                 <div className="text-center p-4 bg-gray-50 rounded-lg">
                   <div className="text-sm text-gray-600 mb-1">Current Bid</div>
                   <div className="text-3xl font-bold text-gray-900">
-                    ${auction.currentBid.toLocaleString()}
+                    ${auction.currentBid ? auction.currentBid.toLocaleString() : '0'}
                   </div>
                   <div className="text-sm text-gray-600 mt-1">
-                    {auction.bids} bids
+                    {auction.bids || 0} bids
                   </div>
                 </div>
 
@@ -365,33 +599,43 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage }: AuctionDetails
                 <div className="space-y-4">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-600">Minimum bid:</span>
-                    <span className="font-medium">${auction.minBid.toLocaleString()}</span>
+                    <span className="font-medium">${auction.minBid ? auction.minBid.toLocaleString() : '0'}</span>
                   </div>
                   
-                  <div className="space-y-3">
-                    <Input
-                      type="number"
-                      value={bidAmount}
-                      onChange={(e) => setBidAmount(e.target.value)}
-                      placeholder={`Enter $${auction.minBid} or more`}
-                      className="text-center text-lg font-medium"
-                    />
-                    <Button 
-                      onClick={handlePlaceBid}
-                      className="w-full bg-black text-white hover:bg-gray-800 py-3"
-                      disabled={!bidAmount || parseFloat(bidAmount) < auction.minBid}
-                    >
-                      <Gavel className="w-4 h-4 mr-2" />
-                      Place Bid
-                    </Button>
-                  </div>
+                  {!isAdmin && (
+                    <div className="space-y-3">
+                      <Input
+                        type="number"
+                        value={bidAmount}
+                        onChange={(e) => setBidAmount(e.target.value)}
+                        placeholder={`Enter $${auction.minBid} or more`}
+                        className="text-center text-lg font-medium"
+                      />
+                      <Button 
+                        onClick={handlePlaceBid}
+                        className="w-full bg-black text-white hover:bg-gray-800 py-3"
+                        disabled={!bidAmount || parseFloat(bidAmount) < auction.minBid}
+                      >
+                        <Gavel className="w-4 h-4 mr-2" />
+                        Place Bid
+                      </Button>
+                    </div>
+                  )}
 
-                  {auction.buyNowPrice && (
+                  {isAdmin && (
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-sm text-yellow-800 text-center">
+                        <strong>Admin View:</strong> Bidding is disabled for admin accounts
+                      </p>
+                    </div>
+                  )}
+
+                  {!isAdmin && auction.buyNowPrice && (
                     <Button 
                       variant="outline"
                       className="w-full border-gray-300 py-3"
                     >
-                      Buy Now - ${auction.buyNowPrice.toLocaleString()}
+                      Buy Now - ${auction.buyNowPrice ? auction.buyNowPrice.toLocaleString() : '0'}
                     </Button>
                   )}
                 </div>
@@ -413,49 +657,28 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage }: AuctionDetails
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {bidHistory.map((bid, index) => (
+                  {bidHistory.length > 0 ? bidHistory.map((bid, index) => (
                     <div key={index} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
                       <div className="flex items-center space-x-3">
                         <Avatar className="w-8 h-8">
                           <AvatarFallback className="bg-gray-200 text-xs">
-                            {bid.bidder.charAt(0).toUpperCase()}
+                            {bid.bidder?.charAt(0).toUpperCase() || 'U'}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <div className="font-medium text-sm">{bid.bidder}</div>
-                          <div className="text-xs text-gray-500">{bid.time}</div>
+                          <div className="font-medium text-sm">{bid.bidder || 'Anonymous'}</div>
+                          <div className="text-xs text-gray-500">{bid.time || 'Just now'}</div>
                         </div>
                       </div>
                       <div className="font-semibold text-gray-900">
-                        ${bid.amount.toLocaleString()}
+                        ${bid.amount ? bid.amount.toLocaleString() : '0'}
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Seller Quick Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Seller</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center space-x-3">
-                  <Avatar>
-                    <AvatarFallback className="bg-gray-200">
-                      {auction.seller.name.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="font-medium">{auction.seller.name}</div>
-                    <div className="text-sm text-gray-600">
-                      ⭐ {auction.seller.rating} • {auction.seller.reviews} reviews
+                  )) : (
+                    <div className="text-center py-4 text-gray-500">
+                      No bids yet. Be the first to bid!
                     </div>
-                    <div className="text-xs text-gray-500">
-                      Member since {auction.seller.memberSince}
-                    </div>
-                  </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

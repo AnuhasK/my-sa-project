@@ -48,6 +48,30 @@ namespace AuctionHouse.Api.Controllers
         }
 
         /// <summary>
+        /// Gets all transactions (admin only)
+        /// </summary>
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        public async Task<IActionResult> GetAllTransactions()
+        {
+            try
+            {
+                var result = await _transactionService.GetAllTransactionsAsync();
+                
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(new { message = result.Error });
+                }
+
+                return Ok(result.Data);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Gets a specific transaction by ID
         /// </summary>
         [Authorize]
@@ -80,7 +104,8 @@ namespace AuctionHouse.Api.Controllers
         }
 
         /// <summary>
-        /// Gets all transactions where the current user is the buyer
+        /// Gets all transactions where the current user is the buyer (won auctions)
+        /// Aliases: /api/transactions/buyer, /api/transactions/my-purchases, /api/transactions/won-auctions
         /// </summary>
         [Authorize]
         [HttpGet("buyer")]
@@ -107,6 +132,26 @@ namespace AuctionHouse.Api.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+        }
+
+        /// <summary>
+        /// Alias for GetBuyerTransactions - Gets won auctions/my purchases
+        /// </summary>
+        [Authorize]
+        [HttpGet("my-purchases")]
+        public async Task<IActionResult> GetMyPurchases()
+        {
+            return await GetBuyerTransactions();
+        }
+
+        /// <summary>
+        /// Alias for GetBuyerTransactions - Gets won auctions
+        /// </summary>
+        [Authorize]
+        [HttpGet("won-auctions")]
+        public async Task<IActionResult> GetWonAuctions()
+        {
+            return await GetBuyerTransactions();
         }
 
         /// <summary>
@@ -162,6 +207,43 @@ namespace AuctionHouse.Api.Controllers
                 }
 
                 return Ok(new { message = "Payment status updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Updates shipping information for a transaction (Admin only)
+        /// </summary>
+        [Authorize(Roles = "Admin")]
+        [HttpPut("{id}/shipping")]
+        public async Task<IActionResult> UpdateShippingInfo(int id, [FromBody] UpdateShippingInfoDto dto)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+                {
+                    return Unauthorized(new { message = "Invalid authentication token" });
+                }
+
+                var result = await _transactionService.UpdateShippingInfoAsync(
+                    id,
+                    dto.ShippingAddress,
+                    dto.TrackingNumber,
+                    dto.ShippingMethod,
+                    dto.AdminNotes,
+                    userId
+                );
+
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(new { message = result.Error });
+                }
+
+                return Ok(new { message = "Shipping information updated successfully" });
             }
             catch (Exception ex)
             {

@@ -12,5 +12,11 @@ namespace AuctionHouse.Api.Models
 
         // Image URL or file path
         public string Url { get; set; } = null!;
+
+        // Indicates if this is the primary/featured image
+        public bool IsPrimary { get; set; } = false;
+
+        // Display order for image gallery (lower numbers first)
+        public int DisplayOrder { get; set; } = 0;
     }
 }

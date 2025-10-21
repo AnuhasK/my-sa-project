@@ -74,5 +74,59 @@ namespace AuctionHouse.Api.Controllers
             }
             catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
         }
+
+        [HttpPut("profile")]
+        [Authorize]
+        public async Task<IActionResult> UpdateProfile(UpdateProfileDto dto)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (userIdClaim == null || !int.TryParse(userIdClaim, out int userId))
+                    return Unauthorized(new { message = "Invalid user token" });
+
+                var profile = await _auth.UpdateProfileAsync(userId, dto);
+                if (profile == null)
+                    return NotFound(new { message = "User not found" });
+
+                return Ok(profile);
+            }
+            catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
+        }
+
+        [HttpPost("change-password")]
+        [Authorize]
+        public async Task<IActionResult> ChangePassword(ChangePasswordDto dto)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (userIdClaim == null || !int.TryParse(userIdClaim, out int userId))
+                    return Unauthorized(new { message = "Invalid user token" });
+
+                await _auth.ChangePasswordAsync(userId, dto);
+                return Ok(new { message = "Password changed successfully" });
+            }
+            catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
+        }
+
+        [HttpPost("profile-image")]
+        [Authorize]
+        public async Task<IActionResult> UpdateProfileImage([FromBody] string imageUrl)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (userIdClaim == null || !int.TryParse(userIdClaim, out int userId))
+                    return Unauthorized(new { message = "Invalid user token" });
+
+                var success = await _auth.UpdateProfileImageAsync(userId, imageUrl);
+                if (!success)
+                    return NotFound(new { message = "User not found" });
+
+                return Ok(new { message = "Profile image updated successfully", imageUrl });
+            }
+            catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
+        }
     }
 }

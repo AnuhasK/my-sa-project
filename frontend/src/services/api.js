@@ -93,6 +93,58 @@ class ApiService {
     return this.handleResponse(response);
   }
 
+  async updateProfile(profileData, token) {
+    const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify(profileData),
+    });
+    return this.handleResponse(response);
+  }
+
+  async changePassword(passwordData, token) {
+    const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify(passwordData),
+    });
+    return this.handleResponse(response);
+  }
+
+  async updateProfileImage(imageUrl, token) {
+    const response = await fetch(`${API_BASE_URL}/auth/profile-image`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify(imageUrl),
+    });
+    return this.handleResponse(response);
+  }
+
+  // User statistics endpoints
+  async getUserStats(token) {
+    const response = await fetch(`${API_BASE_URL}/users/stats`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  async getUserActiveBids(token) {
+    const response = await fetch(`${API_BASE_URL}/users/active-bids`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  async getUserWonAuctions(token) {
+    const response = await fetch(`${API_BASE_URL}/users/won-auctions`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
   // Auction endpoints
   async getAuctions(filters = {}) {
     const params = new URLSearchParams();
@@ -145,6 +197,18 @@ class ApiService {
     return this.handleResponse(response);
   }
 
+  async closeAuction(id, token) {
+    const response = await fetch(`${API_BASE_URL}/auctions/${id}/close`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || `Failed to close auction`);
+    }
+    return response.status === 204 ? { success: true } : this.handleResponse(response);
+  }
+
   async getUserAuctions(token) {
     const response = await fetch(`${API_BASE_URL}/auctions/my-auctions`, {
       method: 'GET',
@@ -192,6 +256,15 @@ class ApiService {
     return this.handleResponse(response);
   }
 
+  async addAuctionImageByUrl(auctionId, imageUrl, token) {
+    const response = await fetch(`${API_BASE_URL}/auctions/${auctionId}/images/url`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify({ url: imageUrl }),
+    });
+    return this.handleResponse(response);
+  }
+
   async deleteAuctionImage(auctionId, imageId, token) {
     const response = await fetch(`${API_BASE_URL}/auctions/${auctionId}/images/${imageId}`, {
       method: 'DELETE',
@@ -225,6 +298,15 @@ class ApiService {
     return this.handleResponse(response);
   }
 
+  // Payment endpoints
+  async createCheckoutSession(transactionId, token) {
+    const response = await fetch(`${API_BASE_URL}/payments/create-checkout-session/${transactionId}`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
   async createTransaction(auctionId, buyerId, amount, token) {
     const response = await fetch(`${API_BASE_URL}/transactions`, {
       method: 'POST',
@@ -249,9 +331,21 @@ class ApiService {
     return this.handleResponse(response);
   }
 
-  // Notifications endpoints (when implemented)
-  async getNotifications(token) {
-    const response = await fetch(`${API_BASE_URL}/notifications`, {
+  // Notifications endpoints
+  async getNotifications(token, pageNumber = 1, pageSize = 10, isRead = null) {
+    let url = `${API_BASE_URL}/notifications?pageNumber=${pageNumber}&pageSize=${pageSize}`;
+    if (isRead !== null) {
+      url += `&isRead=${isRead}`;
+    }
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  async getUnreadCount(token) {
+    const response = await fetch(`${API_BASE_URL}/notifications/unread-count`, {
       method: 'GET',
       headers: this.getAuthHeaders(token),
     });
@@ -261,6 +355,22 @@ class ApiService {
   async markNotificationAsRead(id, token) {
     const response = await fetch(`${API_BASE_URL}/notifications/${id}/read`, {
       method: 'PUT',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  async markAllNotificationsAsRead(token) {
+    const response = await fetch(`${API_BASE_URL}/notifications/mark-all-read`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  async deleteNotification(id, token) {
+    const response = await fetch(`${API_BASE_URL}/notifications/${id}`, {
+      method: 'DELETE',
       headers: this.getAuthHeaders(token),
     });
     return this.handleResponse(response);
@@ -337,13 +447,54 @@ class ApiService {
       method: 'GET',
       headers: this.getAuthHeaders(token),
     });
-    return this.handleResponse(response);
+    const data = await this.handleResponse(response);
+    // Backend returns { auctionId, isInWatchlist }, extract the boolean
+    return data.isInWatchlist;
   }
 
   async getWatchersCount(auctionId) {
     const response = await fetch(`${API_BASE_URL}/watchlist/watchers/${auctionId}`, {
       method: 'GET',
       headers: this.getAuthHeaders(),
+    });
+    const data = await this.handleResponse(response);
+    // Backend returns { auctionId, watchersCount }, extract the count
+    return data.watchersCount;
+  }
+
+  // Transaction management endpoints
+  async getAllTransactions(token) {
+    const response = await fetch(`${API_BASE_URL}/transactions`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  async updateShippingInfo(transactionId, shippingData, token) {
+    const response = await fetch(`${API_BASE_URL}/transactions/${transactionId}/shipping`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify(shippingData),
+    });
+    return this.handleResponse(response);
+  }
+
+  async updateTransactionStatus(transactionId, status, token) {
+    const response = await fetch(`${API_BASE_URL}/transactions/${transactionId}/payment-status`, {
+      method: 'PATCH',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify({ paymentStatus: status }),
+    });
+    return this.handleResponse(response);
+  }
+
+  // Mark transaction as shipped (admin only)
+  async markAsShipped(transactionId, shippingInfo, token) {
+    const response = await fetch(`${API_BASE_URL}/transactions/${transactionId}/shipping`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify(shippingInfo),
     });
     return this.handleResponse(response);
   }

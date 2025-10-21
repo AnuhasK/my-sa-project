@@ -189,6 +189,150 @@ class AdminApi {
     });
     return this.handleResponse(response);
   }
+
+  // ==================== Activity Log ====================
+
+  /**
+   * Get recent activity logs
+   * @param {string} token - JWT token
+   * @param {number} count - Number of activities to retrieve (default: 20)
+   * @returns {Promise<Array>} Recent activity logs
+   */
+  async getRecentActivityLogs(token, count = 20) {
+    const response = await fetch(`${API_BASE_URL}/activitylogs/recent?count=${count}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  // ==================== Announcements ====================
+
+  /**
+   * Get all announcements
+   * @param {string} token - JWT token
+   * @returns {Promise<Array>} All announcements
+   */
+  async getAnnouncements(token) {
+    const response = await fetch(`${API_BASE_URL}/announcements`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  /**
+   * Create a new announcement
+   * @param {Object} announcementData - Announcement data (title, message, type, recipients, scheduledFor)
+   * @param {string} token - JWT token
+   * @returns {Promise<Object>} Created announcement
+   */
+  async createAnnouncement(announcementData, token) {
+    const response = await fetch(`${API_BASE_URL}/announcements`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify(announcementData),
+    });
+    return this.handleResponse(response);
+  }
+
+  /**
+   * Send an announcement
+   * @param {number} announcementId - Announcement ID
+   * @param {string} token - JWT token
+   * @returns {Promise<Object>} Success message
+   */
+  async sendAnnouncement(announcementId, token) {
+    const response = await fetch(`${API_BASE_URL}/announcements/${announcementId}/send`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  /**
+   * Delete an announcement
+   * @param {number} announcementId - Announcement ID
+   * @param {string} token - JWT token
+   * @returns {Promise<Object>} Success message
+   */
+  async deleteAnnouncement(announcementId, token) {
+    const response = await fetch(`${API_BASE_URL}/announcements/${announcementId}`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  // ==================== Analytics ====================
+
+  /**
+   * Get revenue data for charts
+   * @param {string} token - JWT token
+   * @param {number} months - Number of months to retrieve (default: 9)
+   * @returns {Promise<Array>} Revenue data by month
+   */
+  async getRevenueData(token, months = 9) {
+    const response = await fetch(`${API_BASE_URL}/analytics/revenue?months=${months}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  /**
+   * Get user growth data for charts
+   * @param {string} token - JWT token
+   * @param {number} months - Number of months to retrieve (default: 9)
+   * @returns {Promise<Array>} User growth data by month
+   */
+  async getUserGrowthData(token, months = 9) {
+    const response = await fetch(`${API_BASE_URL}/analytics/user-growth?months=${months}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  /**
+   * Get category distribution data
+   * @param {string} token - JWT token
+   * @returns {Promise<Array>} Category distribution data
+   */
+  async getCategoryDistribution(token) {
+    const response = await fetch(`${API_BASE_URL}/analytics/categories`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  /**
+   * Get top performing auctions
+   * @param {string} token - JWT token
+   * @param {number} count - Number of top auctions to retrieve (default: 5)
+   * @returns {Promise<Array>} Top performing auctions
+   */
+  async getTopPerformingAuctions(token, count = 5) {
+    const response = await fetch(`${API_BASE_URL}/analytics/top-auctions?count=${count}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  /**
+   * Get analytics stats summary
+   * @param {string} token - JWT token
+   * @returns {Promise<Object>} Analytics stats (revenue, auctions, users, bid value)
+   */
+  async getAnalyticsStats(token) {
+    const response = await fetch(`${API_BASE_URL}/analytics/stats`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
 }
 
 // Export singleton instance

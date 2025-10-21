@@ -326,25 +326,31 @@ export function UserManagement() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-semibold text-gray-900">12,847</div>
+            <div className="text-2xl font-semibold text-gray-900">{totalUsers.toLocaleString()}</div>
             <div className="text-sm text-gray-600">Total Users</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-semibold text-green-600">11,234</div>
+            <div className="text-2xl font-semibold text-green-600">
+              {users.filter(u => u.isActive && !u.deletedAt).length.toLocaleString()}
+            </div>
             <div className="text-sm text-gray-600">Active Users</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-semibold text-orange-600">234</div>
-            <div className="text-sm text-gray-600">Pending Verification</div>
+            <div className="text-2xl font-semibold text-orange-600">
+              {users.filter(u => !u.isActive && !u.deletedAt).length.toLocaleString()}
+            </div>
+            <div className="text-sm text-gray-600">Inactive</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-semibold text-red-600">156</div>
+            <div className="text-2xl font-semibold text-red-600">
+              {users.filter(u => u.deletedAt).length.toLocaleString()}
+            </div>
             <div className="text-sm text-gray-600">Suspended</div>
           </CardContent>
         </Card>

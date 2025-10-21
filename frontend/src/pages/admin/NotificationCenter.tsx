@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Bell, 
   Send, 
@@ -10,7 +10,8 @@ import {
   XCircle,
   Users,
   Megaphone,
-  Mail
+  Mail,
+  Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/card';
 import { Button } from '../../components/button';
@@ -21,10 +22,40 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/tabs';
 import { Checkbox } from '../../components/checkbox';
 import { Label } from '../../components/label';
+import { useAuth } from '../../contexts/AuthContext';
+import api from '../../services/api';
+import { toast } from 'sonner';
+
+interface Notification {
+  id: number;
+  type: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+interface Announcement {
+  id: number;
+  title: string;
+  message: string;
+  type: string;
+  recipients: string;
+  status: string;
+  createdAt: string;
+  sentAt?: string;
+  sentTimeAgo: string;
+}
 
 export function NotificationCenter() {
+  const { token } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [announcementsLoading, setAnnouncementsLoading] = useState(false);
+  const [sendingAnnouncement, setSendingAnnouncement] = useState(false);
   const [newAnnouncement, setNewAnnouncement] = useState({
     title: '',
     message: '',
@@ -32,92 +63,61 @@ export function NotificationCenter() {
     recipients: 'all'
   });
 
-  const notifications = [
-    {
-      id: '1',
-      type: 'warning',
-      title: 'Payment Dispute Reported',
-      message: 'A payment dispute has been reported for auction #AUC-1247. Requires immediate attention.',
-      timestamp: '5 minutes ago',
-      read: false,
-      actionRequired: true
-    },
-    {
-      id: '2',
-      type: 'success',
-      title: 'High-Value Auction Completed',
-      message: 'Auction "Vintage Rolex Collection" completed successfully with final bid of $12,500.',
-      timestamp: '15 minutes ago',
-      read: false,
-      actionRequired: false
-    },
-    {
-      id: '3',
-      type: 'info',
-      title: 'New User Registration Spike',
-      message: '50+ new users registered in the last hour. Consider reviewing server capacity.',
-      timestamp: '32 minutes ago',
-      read: true,
-      actionRequired: false
-    },
-    {
-      id: '4',
-      type: 'error',
-      title: 'System Error Detected',
-      message: 'Error in payment processing system. Some transactions may be delayed.',
-      timestamp: '1 hour ago',
-      read: false,
-      actionRequired: true
-    },
-    {
-      id: '5',
-      type: 'info',
-      title: 'Weekly Report Available',
-      message: 'Your weekly performance report is ready for review.',
-      timestamp: '2 hours ago',
-      read: true,
-      actionRequired: false
-    },
-    {
-      id: '6',
-      type: 'warning',
-      title: 'Suspicious Activity Alert',
-      message: 'Multiple failed login attempts detected for user account: john.doe@email.com',
-      timestamp: '3 hours ago',
-      read: true,
-      actionRequired: true
-    }
-  ];
+  // Fetch notifications from backend
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!token) return;
+      
+      try {
+        setLoading(true);
+        const data = await api.getNotifications(token, 1, 50); // Get first 50 notifications
+        setNotifications(data);
+      } catch (err: any) {
+        console.error('Error fetching notifications:', err);
+        toast.error('Failed to load notifications');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const recentAnnouncements = [
-    {
-      id: '1',
-      title: 'Platform Maintenance Scheduled',
-      message: 'We will be performing routine maintenance on September 15th from 2:00 AM to 4:00 AM EST.',
-      type: 'info',
-      recipients: 'All Users',
-      sentAt: '2 days ago',
-      status: 'sent'
-    },
-    {
-      id: '2',
-      title: 'New Category Added: Vintage Electronics',
-      message: 'We are excited to announce a new auction category for vintage electronics and gadgets.',
-      type: 'success',
-      recipients: 'All Users',
-      sentAt: '5 days ago',
-      status: 'sent'
-    },
-    {
-      id: '3',
-      title: 'Updated Terms of Service',
-      message: 'Please review our updated Terms of Service, effective October 1st, 2024.',
-      type: 'warning',
-      recipients: 'All Users',
-      sentAt: '1 week ago',
-      status: 'sent'
-    }
-  ];
+    fetchNotifications();
+  }, [token]);
+
+  // Fetch announcements from backend
+  useEffect(() => {
+    const fetchAnnouncements = async () => {
+      if (!token) return;
+      
+      try {
+        setAnnouncementsLoading(true);
+        const { adminApi } = await import('../../services/adminApi');
+        const data = await adminApi.getAnnouncements(token);
+        setAnnouncements(data);
+      } catch (err: any) {
+        console.error('Error fetching announcements:', err);
+        toast.error('Failed to load announcements');
+      } finally {
+        setAnnouncementsLoading(false);
+      }
+    };
+
+    fetchAnnouncements();
+  }, [token]);
+
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    
+    if (minutes < 60) return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+    if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+    if (days < 7) return `${days} day${days !== 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString();
+  };
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -154,18 +154,46 @@ export function NotificationCenter() {
     return matchesSearch && matchesType;
   });
 
-  const handleSendAnnouncement = () => {
-    if (newAnnouncement.title && newAnnouncement.message) {
-      console.log('Sending announcement:', newAnnouncement);
+  const handleSendAnnouncement = async () => {
+    if (!newAnnouncement.title || !newAnnouncement.message) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+    
+    if (!token) {
+      toast.error('Authentication required');
+      return;
+    }
+
+    try {
+      setSendingAnnouncement(true);
+      const { adminApi } = await import('../../services/adminApi');
+      
+      // Create the announcement
+      const created = await adminApi.createAnnouncement(newAnnouncement, token) as Announcement;
+      
+      // Send it immediately
+      await adminApi.sendAnnouncement(created.id, token);
+      
+      toast.success('Announcement sent successfully!');
       setNewAnnouncement({ title: '', message: '', type: 'info', recipients: 'all' });
+      
+      // Refresh announcements list
+      const updated = await adminApi.getAnnouncements(token);
+      setAnnouncements(updated);
+    } catch (err: any) {
+      console.error('Error sending announcement:', err);
+      toast.error(err.message || 'Failed to send announcement');
+    } finally {
+      setSendingAnnouncement(false);
     }
   };
 
   const stats = [
-    { label: 'Unread Notifications', value: notifications.filter(n => !n.read).length, icon: Bell, color: 'text-orange-600' },
-    { label: 'Action Required', value: notifications.filter(n => n.actionRequired).length, icon: AlertTriangle, color: 'text-red-600' },
-    { label: 'Announcements Sent', value: recentAnnouncements.length, icon: Megaphone, color: 'text-blue-600' },
-    { label: 'Active Recipients', value: '12,847', icon: Users, color: 'text-green-600' }
+    { label: 'Total Notifications', value: notifications.length, icon: Bell, color: 'text-blue-600' },
+    { label: 'Unread', value: notifications.filter(n => !n.isRead).length, icon: Bell, color: 'text-orange-600' },
+    { label: 'Read', value: notifications.filter(n => n.isRead).length, icon: CheckCircle, color: 'text-green-600' },
+    { label: 'Announcements Sent', value: announcements.filter(a => a.status === 'sent').length, icon: Megaphone, color: 'text-blue-600' }
   ];
 
   return (
@@ -240,52 +268,56 @@ export function NotificationCenter() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {filteredNotifications.map((notification) => (
-                  <div 
-                    key={notification.id} 
-                    className={`p-4 border rounded-lg ${
-                      !notification.read ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'
-                    }`}
-                  >
-                    <div className="flex items-start space-x-3">
-                      <div className="flex-shrink-0 mt-1">
-                        {getNotificationIcon(notification.type)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center space-x-2">
-                            <h3 className={`font-medium ${!notification.read ? 'text-gray-900' : 'text-gray-700'}`}>
-                              {notification.title}
-                            </h3>
-                            {!notification.read && (
-                              <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                            )}
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            {getNotificationBadge(notification.type)}
-                            {notification.actionRequired && (
-                              <Badge className="bg-red-100 text-red-800">Action Required</Badge>
-                            )}
-                          </div>
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                    <span className="ml-2 text-gray-600">Loading notifications...</span>
+                  </div>
+                ) : filteredNotifications.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Bell className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-600">No notifications found</p>
+                  </div>
+                ) : (
+                  filteredNotifications.map((notification) => (
+                    <div 
+                      key={notification.id} 
+                      className={`p-4 border rounded-lg ${
+                        !notification.isRead ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'
+                      }`}
+                    >
+                      <div className="flex items-start space-x-3">
+                        <div className="flex-shrink-0 mt-1">
+                          {getNotificationIcon(notification.type)}
                         </div>
-                        <p className="text-sm text-gray-600 mb-3">{notification.message}</p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-500">{notification.timestamp}</span>
-                          <div className="flex space-x-2">
-                            {!notification.read && (
-                              <Button variant="outline" size="sm">Mark as Read</Button>
-                            )}
-                            {notification.actionRequired && (
-                              <Button size="sm" className="bg-black text-white hover:bg-gray-800">
-                                Take Action
-                              </Button>
-                            )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-2">
+                              <h3 className={`font-medium ${!notification.isRead ? 'text-gray-900' : 'text-gray-700'}`}>
+                                {notification.title}
+                              </h3>
+                              {!notification.isRead && (
+                                <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                              )}
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              {getNotificationBadge(notification.type)}
+                            </div>
+                          </div>
+                          <p className="text-sm text-gray-600 mb-3">{notification.message}</p>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-500">{formatTimestamp(notification.createdAt)}</span>
+                            <div className="flex space-x-2">
+                              {!notification.isRead && (
+                                <Button variant="outline" size="sm">Mark as Read</Button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -351,27 +383,27 @@ export function NotificationCenter() {
                         checked && setNewAnnouncement(prev => ({ ...prev, recipients: 'all' }))
                       }
                     />
-                    <Label htmlFor="all-users">All Users (12,847)</Label>
+                    <Label htmlFor="all-users">All Users</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox 
-                      id="sellers" 
-                      checked={newAnnouncement.recipients === 'sellers'}
+                      id="active-users" 
+                      checked={newAnnouncement.recipients === 'active'}
                       onCheckedChange={(checked: boolean) => 
-                        checked && setNewAnnouncement(prev => ({ ...prev, recipients: 'sellers' }))
+                        checked && setNewAnnouncement(prev => ({ ...prev, recipients: 'active' }))
                       }
                     />
-                    <Label htmlFor="sellers">Sellers Only (3,421)</Label>
+                    <Label htmlFor="active-users">Active Users</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox 
-                      id="buyers" 
-                      checked={newAnnouncement.recipients === 'buyers'}
+                      id="suspended-users" 
+                      checked={newAnnouncement.recipients === 'suspended'}
                       onCheckedChange={(checked: boolean) => 
-                        checked && setNewAnnouncement(prev => ({ ...prev, recipients: 'buyers' }))
+                        checked && setNewAnnouncement(prev => ({ ...prev, recipients: 'suspended' }))
                       }
                     />
-                    <Label htmlFor="buyers">Active Buyers (9,426)</Label>
+                    <Label htmlFor="suspended-users">Suspended Users</Label>
                   </div>
                 </div>
               </div>
@@ -379,10 +411,19 @@ export function NotificationCenter() {
               <Button 
                 onClick={handleSendAnnouncement}
                 className="bg-black text-white hover:bg-gray-800"
-                disabled={!newAnnouncement.title || !newAnnouncement.message}
+                disabled={!newAnnouncement.title || !newAnnouncement.message || sendingAnnouncement}
               >
-                <Send className="w-4 h-4 mr-2" />
-                Send Announcement
+                {sendingAnnouncement ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    Send Announcement
+                  </>
+                )}
               </Button>
             </CardContent>
           </Card>
@@ -393,25 +434,42 @@ export function NotificationCenter() {
               <CardTitle>Recent Announcements</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {recentAnnouncements.map((announcement) => (
-                  <div key={announcement.id} className="p-4 border border-gray-200 rounded-lg">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center space-x-2">
-                        <Mail className="w-4 h-4 text-gray-600" />
-                        <h3 className="font-medium text-gray-900">{announcement.title}</h3>
-                        {getNotificationBadge(announcement.type)}
+              {announcementsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                  <span className="ml-2 text-gray-600">Loading announcements...</span>
+                </div>
+              ) : announcements.length > 0 ? (
+                <div className="space-y-4">
+                  {announcements.slice(0, 5).map((announcement) => (
+                    <div key={announcement.id} className="p-4 border border-gray-200 rounded-lg">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <Mail className="w-4 h-4 text-gray-600" />
+                          <h3 className="font-medium text-gray-900">{announcement.title}</h3>
+                          {getNotificationBadge(announcement.type)}
+                        </div>
+                        <span className="text-xs text-gray-500">{announcement.sentTimeAgo}</span>
                       </div>
-                      <span className="text-xs text-gray-500">{announcement.sentAt}</span>
+                      <p className="text-sm text-gray-600 mb-3">{announcement.message}</p>
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span>Recipients: {announcement.recipients}</span>
+                        <Badge className={
+                          announcement.status === 'sent' 
+                            ? 'bg-green-100 text-green-800' 
+                            : announcement.status === 'draft'
+                            ? 'bg-gray-100 text-gray-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                        }>
+                          {announcement.status.charAt(0).toUpperCase() + announcement.status.slice(1)}
+                        </Badge>
+                      </div>
                     </div>
-                    <p className="text-sm text-gray-600 mb-3">{announcement.message}</p>
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>Recipients: {announcement.recipients}</span>
-                      <Badge className="bg-green-100 text-green-800">Sent</Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-8">No announcements yet</p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

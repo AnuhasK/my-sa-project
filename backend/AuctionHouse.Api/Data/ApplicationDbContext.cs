@@ -16,6 +16,8 @@ namespace AuctionHouse.Api.Data
         public DbSet<Watchlist> Watchlists { get; set; }
         public DbSet<RevokedToken> RevokedTokens { get; set; }
         public DbSet<Notification> Notifications { get; set; }
+        public DbSet<ActivityLog> ActivityLogs { get; set; }
+        public DbSet<Announcement> Announcements { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

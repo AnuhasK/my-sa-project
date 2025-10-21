@@ -1,116 +1,91 @@
-import { useState } from 'react';
-import { Download, TrendingUp, Users, DollarSign, Gavel, Calendar, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Download, TrendingUp, Users, DollarSign, Gavel, Calendar, ArrowUpRight, ArrowDownRight, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/card';
 import { Button } from '../../components/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/table';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { useAuth } from '../../contexts/AuthContext';
+import { adminApi } from '../../services/adminApi';
+import { toast } from 'sonner';
 
 export function Reports() {
+  const { token } = useAuth();
   const [timeRange, setTimeRange] = useState('30days');
+  const [loading, setLoading] = useState(true);
+  
+  // State for analytics data
+  const [revenueData, setRevenueData] = useState<any[]>([]);
+  const [userGrowthData, setUserGrowthData] = useState<any[]>([]);
+  const [categoryData, setCategoryData] = useState<any[]>([]);
+  const [topPerformingAuctions, setTopPerformingAuctions] = useState<any[]>([]);
+  const [stats, setStats] = useState<any[]>([]);
 
-  // Mock data for charts
-  const revenueData = [
-    { month: 'Jan', revenue: 45000, auctions: 120 },
-    { month: 'Feb', revenue: 52000, auctions: 135 },
-    { month: 'Mar', revenue: 48000, auctions: 128 },
-    { month: 'Apr', revenue: 61000, auctions: 142 },
-    { month: 'May', revenue: 55000, auctions: 156 },
-    { month: 'Jun', revenue: 67000, auctions: 167 },
-    { month: 'Jul', revenue: 72000, auctions: 178 },
-    { month: 'Aug', revenue: 69000, auctions: 184 },
-    { month: 'Sep', revenue: 78000, auctions: 192 }
-  ];
+  useEffect(() => {
+    const fetchAnalyticsData = async () => {
+      if (!token) return;
+      
+      try {
+        setLoading(true);
+        
+        // Fetch all analytics data in parallel
+        const [revenue, userGrowth, categories, topAuctions, analyticsStats] = await Promise.all([
+          adminApi.getRevenueData(token, 9),
+          adminApi.getUserGrowthData(token, 9),
+          adminApi.getCategoryDistribution(token),
+          adminApi.getTopPerformingAuctions(token, 5),
+          adminApi.getAnalyticsStats(token)
+        ]);
+        
+        setRevenueData(revenue);
+        setUserGrowthData(userGrowth);
+        setCategoryData(categories);
+        setTopPerformingAuctions(topAuctions);
+        
+        // Format stats from analytics stats
+        const statsData = analyticsStats as any;
+        setStats([
+          {
+            title: 'Total Revenue',
+            value: statsData.totalRevenueFormatted,
+            change: `${statsData.revenueChange >= 0 ? '+' : ''}${statsData.revenueChange.toFixed(1)}%`,
+            changeType: statsData.revenueChange >= 0 ? 'positive' : 'negative',
+            icon: DollarSign
+          },
+          {
+            title: 'Completed Auctions',
+            value: statsData.completedAuctions.toLocaleString(),
+            change: `${statsData.auctionsChange >= 0 ? '+' : ''}${statsData.auctionsChange.toFixed(1)}%`,
+            changeType: statsData.auctionsChange >= 0 ? 'positive' : 'negative',
+            icon: Gavel
+          },
+          {
+            title: 'Active Users',
+            value: statsData.activeUsers.toLocaleString(),
+            change: `${statsData.usersChange >= 0 ? '+' : ''}${statsData.usersChange.toFixed(1)}%`,
+            changeType: statsData.usersChange >= 0 ? 'positive' : 'negative',
+            icon: Users
+          },
+          {
+            title: 'Average Bid Value',
+            value: statsData.averageBidValueFormatted,
+            change: `${statsData.bidValueChange >= 0 ? '+' : ''}${statsData.bidValueChange.toFixed(1)}%`,
+            changeType: statsData.bidValueChange >= 0 ? 'positive' : 'negative',
+            icon: TrendingUp
+          }
+        ]);
+        
+      } catch (err: any) {
+        console.error('Error fetching analytics data:', err);
+        toast.error('Failed to load analytics data');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const userGrowthData = [
-    { month: 'Jan', users: 8420 },
-    { month: 'Feb', users: 8890 },
-    { month: 'Mar', users: 9240 },
-    { month: 'Apr', users: 9650 },
-    { month: 'May', users: 10120 },
-    { month: 'Jun', users: 10580 },
-    { month: 'Jul', users: 11200 },
-    { month: 'Aug', users: 11680 },
-    { month: 'Sep', users: 12150 }
-  ];
-
-  const categoryData = [
-    { name: 'Art & Collectibles', value: 32, color: '#374151' },
-    { name: 'Jewelry & Watches', value: 24, color: '#6B7280' },
-    { name: 'Antiques', value: 18, color: '#9CA3AF' },
-    { name: 'Electronics', value: 15, color: '#D1D5DB' },
-    { name: 'Furniture', value: 11, color: '#E5E7EB' }
-  ];
-
-  const topPerformingAuctions = [
-    {
-      title: 'Vintage Rolex Submariner',
-      seller: 'WatchExpert',
-      finalBid: 8500,
-      bids: 47,
-      category: 'Watches'
-    },
-    {
-      title: 'Original Picasso Sketch',
-      seller: 'ArtGalleryNY',
-      finalBid: 12000,
-      bids: 89,
-      category: 'Art'
-    },
-    {
-      title: 'Antique Victorian Jewelry Set',
-      seller: 'AntiqueDealer',
-      finalBid: 6750,
-      bids: 34,
-      category: 'Jewelry'
-    },
-    {
-      title: 'Mid-Century Eames Chair',
-      seller: 'ModernFurniture',
-      finalBid: 3200,
-      bids: 23,
-      category: 'Furniture'
-    },
-    {
-      title: 'Rare First Edition Book Collection',
-      seller: 'BookCollector',
-      finalBid: 4500,
-      bids: 31,
-      category: 'Books'
-    }
-  ];
-
-  const stats = [
-    {
-      title: 'Total Revenue',
-      value: '$1,247,580',
-      change: '+15.3%',
-      changeType: 'positive' as const,
-      icon: DollarSign
-    },
-    {
-      title: 'Completed Auctions',
-      value: '1,542',
-      change: '+8.7%',
-      changeType: 'positive' as const,
-      icon: Gavel
-    },
-    {
-      title: 'Active Users',
-      value: '12,847',
-      change: '+12.4%',
-      changeType: 'positive' as const,
-      icon: Users
-    },
-    {
-      title: 'Average Bid Value',
-      value: '$809',
-      change: '-3.2%',
-      changeType: 'negative' as const,
-      icon: TrendingUp
-    }
-  ];
+    fetchAnalyticsData();
+  }, [token]);
 
   const exportReport = (type: string) => {
     // Mock export functionality
@@ -144,10 +119,18 @@ export function Reports() {
         </div>
       </div>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {stats.map((stat, index) => {
-          const Icon = stat.icon;
+      {/* Loading State */}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+          <span className="ml-3 text-gray-600">Loading analytics data...</span>
+        </div>
+      ) : (
+        <>
+          {/* Key Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {stats.map((stat, index) => {
+              const Icon = stat.icon;
           return (
             <Card key={index}>
               <CardContent className="p-6">
@@ -365,6 +348,8 @@ export function Reports() {
           </Card>
         </TabsContent>
       </Tabs>
+        </>
+      )}
     </div>
   );
 }

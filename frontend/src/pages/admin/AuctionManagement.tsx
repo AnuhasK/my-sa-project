@@ -207,10 +207,10 @@ export function AuctionManagement({ setCurrentPage }: AuctionManagementProps) {
   });
 
   const stats = [
-    { label: 'Total Auctions', value: auctions.length, color: 'text-gray-900' },
-    { label: 'Active', value: auctions.filter(a => a.status === 'active' || a.status === 'ending-soon').length, color: 'text-green-600' },
-    { label: 'Pending Approval', value: auctions.filter(a => a.status === 'pending-approval').length, color: 'text-yellow-600' },
-    { label: 'Completed This Month', value: auctions.filter(a => a.status === 'completed').length, color: 'text-blue-600' }
+    { label: 'Total Auctions', value: auctions.filter(a => a.status !== 'Deleted').length, color: 'text-gray-900' },
+    { label: 'Open', value: auctions.filter(a => a.status === 'Open').length, color: 'text-green-600' },
+    { label: 'Pending Approval', value: auctions.filter(a => a.status === 'Pending').length, color: 'text-yellow-600' },
+    { label: 'Closed/Sold', value: auctions.filter(a => a.status === 'Closed' || a.status === 'Sold').length, color: 'text-blue-600' }
   ];
 
   return (

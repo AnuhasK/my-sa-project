@@ -18,6 +18,7 @@ namespace AuctionHouse.Api.DTOs
         public DateTime EndDate { get; set; }
         public string? ImageUrl { get; set; }
         public string? CategoryName { get; set; }
+        public string Status { get; set; } = string.Empty;
         public int TotalBids { get; set; }
         public DateTime AddedToWatchlistDate { get; set; }
         public bool IsEnding { get; set; } // True if ending within 24 hours

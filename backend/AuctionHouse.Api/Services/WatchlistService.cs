@@ -100,34 +100,37 @@ namespace AuctionHouse.Api.Services
                     .OrderByDescending(w => w.AddedDate)
                     .ToListAsync();
 
-                var result = watchlist.Select(w =>
-                {
-                    var auction = w.Auction;
-                    var currentBid = auction!.Bids?.Any() == true
-                        ? auction.Bids.Max(b => b.Amount)
-                        : auction.StartPrice;
-
-                    // Get first image since IsPrimary doesn't exist
-                    var firstImage = auction.Images?.FirstOrDefault();
-
-                    var timeUntilEnd = auction.EndTime - DateTime.UtcNow;
-                    var isEnding = timeUntilEnd.TotalHours <= 24 && timeUntilEnd.TotalHours > 0;
-
-                    return new WatchlistAuctionDto
+                var result = watchlist
+                    .Where(w => w.Auction != null && w.Auction.Status != "Deleted") // Filter out deleted auctions
+                    .Select(w =>
                     {
-                        Id = w.Id,
-                        AuctionId = auction.Id,
-                        Title = auction.Title,
-                        Description = auction.Description,
-                        CurrentBid = currentBid,
-                        EndDate = auction.EndTime,
-                        ImageUrl = firstImage?.Url,
-                        CategoryName = auction.Category?.Name,
-                        TotalBids = auction.Bids?.Count ?? 0,
-                        AddedToWatchlistDate = w.AddedDate,
-                        IsEnding = isEnding
-                    };
-                }).ToList();
+                        var auction = w.Auction;
+                        var currentBid = auction!.Bids?.Any() == true
+                            ? auction.Bids.Max(b => b.Amount)
+                            : auction.StartPrice;
+
+                        // Get first image since IsPrimary doesn't exist
+                        var firstImage = auction.Images?.FirstOrDefault();
+
+                        var timeUntilEnd = auction.EndTime - DateTime.UtcNow;
+                        var isEnding = timeUntilEnd.TotalHours <= 24 && timeUntilEnd.TotalHours > 0;
+
+                        return new WatchlistAuctionDto
+                        {
+                            Id = w.Id,
+                            AuctionId = auction.Id,
+                            Title = auction.Title,
+                            Description = auction.Description,
+                            CurrentBid = currentBid,
+                            EndDate = auction.EndTime,
+                            ImageUrl = firstImage?.Url,
+                            CategoryName = auction.Category?.Name,
+                            Status = auction.Status,
+                            TotalBids = auction.Bids?.Count ?? 0,
+                            AddedToWatchlistDate = w.AddedDate,
+                            IsEnding = isEnding
+                        };
+                    }).ToList();
 
                 _logger.LogInformation("Retrieved {Count} watchlist items for user {UserId}", result.Count, userId);
                 return result;

@@ -13,6 +13,7 @@ interface AuctionCardProps {
   imageUrl: string;
   views: number;
   category: string;
+  status?: string;
   isEnding?: boolean;
   onClick?: () => void;
 }
@@ -25,6 +26,7 @@ export function AuctionCard({
   imageUrl,
   views,
   category,
+  status,
   isEnding = false,
   onClick
 }: AuctionCardProps) {
@@ -173,9 +175,23 @@ export function AuctionCard({
       
       <div className="p-4 space-y-3">
         <div className="space-y-2">
-          <Badge variant="secondary" className="text-xs">
-            {category}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-xs">
+              {category}
+            </Badge>
+            {status && (
+              <Badge 
+                className={`text-xs ${
+                  status === 'Open' ? 'bg-green-100 text-green-800' :
+                  status === 'Closed' ? 'bg-gray-100 text-gray-800' :
+                  status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-blue-100 text-blue-800'
+                }`}
+              >
+                {status}
+              </Badge>
+            )}
+          </div>
           <h3 className="font-medium text-gray-900 line-clamp-2 leading-tight">
             {title}
           </h3>

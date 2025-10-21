@@ -6,6 +6,14 @@ import { AuctionCard } from './AuctionCard';
 import AuctionFilters from '../../components/AuctionFilters';
 import api from '../../services/api';
 
+// Helper to convert relative image URLs to full URLs
+const getImageUrl = (relativeUrl: string | undefined) => {
+  if (!relativeUrl || relativeUrl.startsWith('http')) return relativeUrl;
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5021/api';
+  const baseUrl = apiBase.replace(/\/api$/, '');
+  return `${baseUrl}${relativeUrl}`;
+};
+
 interface AuctionListingPageProps {
   setCurrentPage: (page: string) => void;
   setSelectedAuction: (id: string) => void;
@@ -91,6 +99,7 @@ export function AuctionListingPage({ setCurrentPage, setSelectedAuction }: Aucti
       imageUrl: auction.primaryImageUrl || '/img/placeholder-auction.jpg',
       views: 0, // Not tracked yet
       category: auction.categoryName,
+      status: auction.status,
       isEnding: isEnding
     };
   };
@@ -274,7 +283,7 @@ export function AuctionListingPage({ setCurrentPage, setSelectedAuction }: Aucti
                         >
                           <div className="flex items-center space-x-6">
                             <img
-                              src={formatted.imageUrl}
+                              src={getImageUrl(formatted.imageUrl)}
                               alt={formatted.title}
                               className="w-24 h-24 object-cover rounded-lg"
                             />

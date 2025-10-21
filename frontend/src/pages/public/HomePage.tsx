@@ -93,7 +93,7 @@ export function HomePage({ setCurrentPage, setSelectedAuction }: HomePageProps) 
     );
 
     // Use the category from backend API
-    let category = auction.categoryName || 'General';
+    let category = auction.categoryName || 'Uncategorized';
     let imageUrl = auction.primaryImageUrl || '/img/placeholder-auction.jpg';
     
     // If no backend image, use smart category detection based on the backend category or title
@@ -124,6 +124,7 @@ export function HomePage({ setCurrentPage, setSelectedAuction }: HomePageProps) 
       imageUrl,
       views: Math.floor(Math.random() * 500) + 50, // Placeholder until we add view tracking
       category,
+      status: auction.status,
       isEnding
     };
   };

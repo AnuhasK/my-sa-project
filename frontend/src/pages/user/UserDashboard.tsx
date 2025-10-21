@@ -10,6 +10,15 @@ import { api } from '../../services/api';
 import { TransactionsList } from '../../components/TransactionsList';
 import { useAuth } from '../../contexts/AuthContext';
 
+// Helper function to build full image URL
+const getImageUrl = (relativeUrl: string | undefined) => {
+  if (!relativeUrl) return undefined;
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5021/api';
+  // Remove /api from the end since the image URL already includes it
+  const baseUrl = apiBase.replace(/\/api$/, '');
+  return `${baseUrl}${relativeUrl}`;
+};
+
 interface UserDashboardProps {
   setCurrentPage: (page: string) => void;
   setSelectedAuction: (id: string) => void;
@@ -252,7 +261,7 @@ export function UserDashboard({ setCurrentPage, setSelectedAuction }: UserDashbo
         <div className="mb-8">
           <div className="flex items-center space-x-4 mb-6">
             <Avatar className="w-20 h-20">
-              <AvatarImage src={userData?.avatar} />
+              <AvatarImage src={getImageUrl(userData?.avatar)} />
               <AvatarFallback className="bg-gray-200 text-2xl">
                 {userData?.name ? userData.name.split(' ').map((n: string) => n[0]).join('') : 'U'}
               </AvatarFallback>

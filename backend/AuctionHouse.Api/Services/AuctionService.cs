@@ -68,6 +68,7 @@ namespace AuctionHouse.Api.Services
                 .Include(a => a.Images)  // Explicitly include images
                 .Include(a => a.Bids)    // Explicitly include bids for count
                 .Include(a => a.Category) // Explicitly include category
+                .Where(a => a.Status != "Deleted") // Exclude deleted auctions from public view
                 .AsQueryable();
 
             // Apply search filter

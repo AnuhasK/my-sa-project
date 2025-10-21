@@ -14,6 +14,7 @@ interface WatchlistAuction {
   endDate: string;
   imageUrl: string;
   categoryName: string;
+  status: string;
   totalBids: number;
   addedToWatchlistDate: string;
   isEnding: boolean;
@@ -139,6 +140,7 @@ export function WatchlistPage({ setCurrentPage, setSelectedAuction }: WatchlistP
                 imageUrl={auction.imageUrl || '/img/placeholder-auction.jpg'}
                 views={auction.totalBids}
                 category={auction.categoryName || 'Uncategorized'}
+                status={auction.status}
                 isEnding={auction.isEnding}
                 onClick={() => {
                   setSelectedAuction(auction.auctionId.toString());

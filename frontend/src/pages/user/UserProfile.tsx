@@ -10,6 +10,15 @@ import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 import { toast } from 'sonner';
 
+// Helper function to build full image URL
+const getImageUrl = (relativeUrl: string | undefined) => {
+  if (!relativeUrl) return undefined;
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5021/api';
+  // Remove /api from the end since the image URL already includes it
+  const baseUrl = apiBase.replace(/\/api$/, '');
+  return `${baseUrl}${relativeUrl}`;
+};
+
 interface ProfileData {
   id: number;
   username: string;
@@ -132,11 +141,35 @@ export function UserProfile() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Only image files (JPEG, PNG, GIF, WebP) are allowed');
+      return;
+    }
+
     try {
       setLoading(true);
       const uploadResponse = await api.uploadImage(file, token);
-      await api.updateProfileImage(uploadResponse.url, token);
-      await loadProfile();
+      console.log('Upload response:', uploadResponse);
+      
+      // Backend returns { imageUrl: "..." }, not { url: "..." }
+      const imageUrl = uploadResponse.imageUrl || uploadResponse.url;
+      console.log('Image URL to save:', imageUrl);
+      
+      await api.updateProfileImage(imageUrl, token);
+      
+      // Force reload to get updated profile
+      const updatedProfile = await api.getCurrentUser(token);
+      console.log('Updated profile:', updatedProfile);
+      setProfile(updatedProfile);
+      
       toast.success('Profile image updated!');
     } catch (error) {
       console.error('Error uploading image:', error);
@@ -173,7 +206,10 @@ export function UserProfile() {
               <div className="flex items-center space-x-4">
                 <div className="relative">
                   <Avatar className="h-20 w-20">
-                    <AvatarImage src={profile?.profileImageUrl} alt={profile?.username} />
+                    <AvatarImage 
+                      src={getImageUrl(profile?.profileImageUrl)} 
+                      alt={profile?.username} 
+                    />
                     <AvatarFallback>
                       <User className="h-10 w-10" />
                     </AvatarFallback>

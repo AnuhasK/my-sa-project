@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Heart, Share2, Eye, Gavel, Shield, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Heart, Share2, Eye, Gavel, Shield, TrendingUp, Link2, Facebook, Twitter, MessageCircle } from 'lucide-react';
 import { Button } from '../../components/button';
 import { Input } from '../../components/input';
 import { Badge } from '../../components/badge';
@@ -9,6 +9,14 @@ import { CountdownTimer } from './CountdownTimer';
 import { api } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import * as signalR from '@microsoft/signalr';
+
+// Helper to convert relative image URLs to full URLs
+const getImageUrl = (relativeUrl: string | undefined) => {
+  if (!relativeUrl || relativeUrl.startsWith('http')) return relativeUrl;
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5021/api';
+  const baseUrl = apiBase.replace(/\/api$/, '');
+  return `${baseUrl}${relativeUrl}`;
+};
 
 interface AuctionDetailsPageProps {
   auctionId: string;
@@ -26,7 +34,21 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage, isAdmin = false 
   const [error, setError] = useState<string | null>(null);
   const [bidHistory, setBidHistory] = useState<any[]>([]);
   const [watchersCount, setWatchersCount] = useState(0);
+  const [showShareMenu, setShowShareMenu] = useState(false);
   const connectionRef = useRef<signalR.HubConnection | null>(null);
+
+  // Close share menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showShareMenu && !target.closest('.share-menu-container')) {
+        setShowShareMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showShareMenu]);
 
   // Check if auction is in watchlist on mount
   useEffect(() => {
@@ -101,6 +123,43 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage, isAdmin = false 
     }
   };
 
+  // Share functionality
+  const getShareUrl = () => {
+    return `${window.location.origin}/#auction-details-${auctionId}`;
+  };
+
+  const handleShareFacebook = () => {
+    const url = getShareUrl();
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+    setShowShareMenu(false);
+  };
+
+  const handleShareWhatsApp = () => {
+    const url = getShareUrl();
+    const text = `Check out this auction: ${auction?.title}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`, '_blank');
+    setShowShareMenu(false);
+  };
+
+  const handleShareTwitter = () => {
+    const url = getShareUrl();
+    const text = `Check out this auction: ${auction?.title}`;
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+    setShowShareMenu(false);
+  };
+
+  const handleCopyLink = async () => {
+    const url = getShareUrl();
+    try {
+      await navigator.clipboard.writeText(url);
+      alert('Link copied to clipboard!');
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      alert('Failed to copy link');
+    }
+    setShowShareMenu(false);
+  };
+
   // Fetch auction details from backend
   useEffect(() => {
     const fetchAuctionDetails = async () => {
@@ -120,7 +179,8 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage, isAdmin = false 
           buyNowPrice: null, // Not in backend DTO currently
           timeLeft: new Date(auctionData.endTime),
           images: auctionData.imageUrls && auctionData.imageUrls.length > 0 ? auctionData.imageUrls : ['/img/placeholder-auction.jpg'],
-          category: auctionData.category || 'General',
+          category: auctionData.categoryName || 'Uncategorized',
+          status: auctionData.status || 'Open',
           condition: auctionData.condition || 'Good',
           views: auctionData.views || 0,
           watchers: auctionData.watchers || 0,
@@ -302,7 +362,8 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage, isAdmin = false 
         buyNowPrice: null,
         timeLeft: new Date(auctionData.endTime),
         images: auctionData.imageUrls && auctionData.imageUrls.length > 0 ? auctionData.imageUrls : auction.images,
-        category: auctionData.category || 'General',
+        category: auctionData.categoryName || 'Uncategorized',
+        status: auctionData.status || 'Open',
         condition: auctionData.condition || 'Good',
         views: auctionData.views || 0,
         watchers: auctionData.watchers || 0,
@@ -375,7 +436,7 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage, isAdmin = false 
               {/* Main Image */}
               <div className="relative">
                 <img
-                  src={auction.images[selectedImage]}
+                  src={getImageUrl(auction.images[selectedImage])}
                   alt={auction.title}
                   className="w-full h-96 md:h-[500px] object-cover rounded-lg border border-gray-200"
                 />
@@ -389,9 +450,52 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage, isAdmin = false 
                   >
                     <Heart className={`w-4 h-4 ${isWatching ? 'fill-current' : ''}`} />
                   </Button>
-                  <Button variant="secondary" size="sm" className="bg-white/90">
-                    <Share2 className="w-4 h-4" />
-                  </Button>
+                  
+                  {/* Share Button with Dropdown */}
+                  <div className="relative share-menu-container">
+                    <Button 
+                      variant="secondary" 
+                      size="sm" 
+                      className="bg-white/90"
+                      onClick={() => setShowShareMenu(!showShareMenu)}
+                    >
+                      <Share2 className="w-4 h-4" />
+                    </Button>
+                    
+                    {showShareMenu && (
+                      <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                        <button
+                          onClick={handleShareFacebook}
+                          className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center space-x-2 text-sm"
+                        >
+                          <Facebook className="w-4 h-4 text-blue-600" />
+                          <span>Share on Facebook</span>
+                        </button>
+                        <button
+                          onClick={handleShareWhatsApp}
+                          className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center space-x-2 text-sm"
+                        >
+                          <MessageCircle className="w-4 h-4 text-green-600" />
+                          <span>Share on WhatsApp</span>
+                        </button>
+                        <button
+                          onClick={handleShareTwitter}
+                          className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center space-x-2 text-sm"
+                        >
+                          <Twitter className="w-4 h-4 text-blue-400" />
+                          <span>Share on Twitter</span>
+                        </button>
+                        <hr className="my-2" />
+                        <button
+                          onClick={handleCopyLink}
+                          className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center space-x-2 text-sm"
+                        >
+                          <Link2 className="w-4 h-4 text-gray-600" />
+                          <span>Copy Link</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -406,7 +510,7 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage, isAdmin = false 
                     }`}
                   >
                     <img
-                      src={image}
+                      src={getImageUrl(image)}
                       alt={`View ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
@@ -436,9 +540,23 @@ export function AuctionDetailsPage({ auctionId, setCurrentPage, isAdmin = false 
             <Card>
               <CardHeader>
                 <div className="space-y-2">
-                  <Badge variant="secondary" className="w-fit">
-                    {auction.category}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="w-fit">
+                      {auction.category}
+                    </Badge>
+                    {auction.status && (
+                      <Badge 
+                        className={`w-fit ${
+                          auction.status === 'Open' ? 'bg-green-100 text-green-800' :
+                          auction.status === 'Closed' ? 'bg-gray-100 text-gray-800' :
+                          auction.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-blue-100 text-blue-800'
+                        }`}
+                      >
+                        {auction.status}
+                      </Badge>
+                    )}
+                  </div>
                   <CardTitle className="text-xl leading-tight">{auction.title}</CardTitle>
                   <div className="flex items-center space-x-4 text-sm text-gray-600">
                     <div className="flex items-center space-x-1">

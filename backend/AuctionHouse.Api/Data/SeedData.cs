@@ -13,35 +13,35 @@ namespace AuctionHouse.Api.Data
             // Create Users - Admins manage auctions, Users place bids
             var admin = new User {
                 Username = "admin",
-                Email = "admin@local",
+                Email = "admin@auctionhouse.com",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
                 Role = "Admin"
             };
 
             var admin2 = new User {
                 Username = "admin2",
-                Email = "admin2@local", 
+                Email = "admin2@auctionhouse.com", 
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin2@123"),
                 Role = "Admin"
             };
 
             var user1 = new User {
                 Username = "john_doe",
-                Email = "john@local",
+                Email = "john.doe@gmail.com",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("User@123"),
                 Role = "User"
             };
 
             var user2 = new User {
                 Username = "jane_smith",
-                Email = "jane@local",
+                Email = "jane.smith@gmail.com",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("User@123"),
                 Role = "User"
             };
 
             var user3 = new User {
                 Username = "collector_mike",
-                Email = "mike@local",
+                Email = "mike.collector@gmail.com",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("User@123"),
                 Role = "User"
             };

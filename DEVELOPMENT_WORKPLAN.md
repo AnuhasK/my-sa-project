@@ -173,7 +173,7 @@ This workplan outlines a structured approach to building the auction platform, p
 - [x] Add error handling for 404 (item not in watchlist)
 - [x] Display watchers count on auction cards and details page
 - [x] Persist watchlist data in database (survives page refreshes)
-- [ ] Send notifications when watchlist auction is ending soon (pending notification system)
+- [X] Send notifications when watchlist auction is ending soon (pending notification system)
 
 ### 4.2 Transaction & Payment (Basic)
 - [ ] Backend: Create Order/Transaction model
@@ -184,19 +184,11 @@ This workplan outlines a structured approach to building the auction platform, p
 - [ ] Display payment instructions
 - [ ] Add order tracking interface
 
-### 4.3 User Ratings & Reviews
-- [ ] Backend: Create Rating/Review model (for sellers)
-- [ ] Implement rating endpoints (create, list)
-- [ ] Add rating aggregation to user profiles
-- [ ] Frontend: Create rating/review form
-- [ ] Display seller ratings on auction pages
-- [ ] Show reviews on user profile pages
-
 ### 4.4 Notifications System (User-Side)
 - [ ] Backend: Create Notification model (Type, Message, IsRead, UserId)
 - [ ] Implement notification creation service
 - [ ] Add notification endpoints (list, mark as read, mark all as read)
-- [ ] Create notification triggers:
+- [ sti] Create notification triggers:
   - Outbid on an auction
   - Auction you're watching is ending soon
   - You won an auction

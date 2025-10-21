@@ -375,6 +375,13 @@ namespace AuctionHouse.Api.Services
                 if (adminNotes != null)
                     transaction.AdminNotes = adminNotes;
 
+                // If tracking number is provided, automatically mark as shipped
+                if (!string.IsNullOrWhiteSpace(trackingNumber) && transaction.PaymentStatus == PaymentStatus.Paid)
+                {
+                    transaction.PaymentStatus = PaymentStatus.Shipped;
+                    transaction.ShippedDate = DateTime.UtcNow;
+                }
+
                 transaction.UpdatedAt = DateTime.UtcNow;
 
                 await _db.SaveChangesAsync();

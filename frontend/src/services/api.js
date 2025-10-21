@@ -489,6 +489,16 @@ class ApiService {
     return this.handleResponse(response);
   }
 
+  // Mark transaction as shipped (admin only)
+  async markAsShipped(transactionId, shippingInfo, token) {
+    const response = await fetch(`${API_BASE_URL}/transactions/${transactionId}/shipping`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify(shippingInfo),
+    });
+    return this.handleResponse(response);
+  }
+
   // Helper method to get image URL
   getImageUrl(imagePath) {
     if (!imagePath) return null;

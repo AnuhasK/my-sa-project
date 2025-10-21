@@ -78,10 +78,26 @@ export function TransactionManagement() {
   };
 
   const handleMarkAsShipped = async (transactionId: number) => {
+    const transaction = transactions.find(t => t.id === transactionId);
+    if (!transaction) return;
+
+    // Check if shipping info exists
+    if (!transaction.trackingNumber) {
+      alert('Please add shipping information first before marking as shipped.');
+      openShippingForm(transaction);
+      return;
+    }
+
     if (!confirm('Mark this transaction as shipped? The buyer will be notified.')) return;
 
     try {
-      await api.updateTransactionStatus(transactionId, 'Shipped', token);
+      // Use the existing shipping info to mark as shipped
+      await api.markAsShipped(transactionId, {
+        trackingNumber: transaction.trackingNumber,
+        shippingMethod: transaction.shippingMethod,
+        shippingAddress: transaction.shippingAddress,
+        adminNotes: transaction.adminNotes
+      }, token);
       alert('Transaction marked as shipped. Buyer has been notified.');
       loadTransactions();
     } catch (error) {

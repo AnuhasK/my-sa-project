@@ -10,6 +10,8 @@ namespace AuctionHouse.Api.Models
         AuctionEnded,       // "Auction ended (for admin notification)"
         TransactionCreated, // "Payment required for won auction"
         TransactionPaid,    // "Payment received/confirmed"
+        TransactionShipped, // "Item has been shipped"
+        TransactionCompleted, // "Order completed - item received"
         AuctionCreated,     // "Your auction is now live"
         AuctionSold,        // "Your auction sold successfully"
         SystemMessage       // General system notifications

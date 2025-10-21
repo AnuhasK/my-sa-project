@@ -197,6 +197,18 @@ class ApiService {
     return this.handleResponse(response);
   }
 
+  async closeAuction(id, token) {
+    const response = await fetch(`${API_BASE_URL}/auctions/${id}/close`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(token),
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || `Failed to close auction`);
+    }
+    return response.status === 204 ? { success: true } : this.handleResponse(response);
+  }
+
   async getUserAuctions(token) {
     const response = await fetch(`${API_BASE_URL}/auctions/my-auctions`, {
       method: 'GET',
@@ -281,6 +293,15 @@ class ApiService {
   async getTransaction(id, token) {
     const response = await fetch(`${API_BASE_URL}/transactions/${id}`, {
       method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  // Payment endpoints
+  async createCheckoutSession(transactionId, token) {
+    const response = await fetch(`${API_BASE_URL}/payments/create-checkout-session/${transactionId}`, {
+      method: 'POST',
       headers: this.getAuthHeaders(token),
     });
     return this.handleResponse(response);
@@ -439,6 +460,33 @@ class ApiService {
     const data = await this.handleResponse(response);
     // Backend returns { auctionId, watchersCount }, extract the count
     return data.watchersCount;
+  }
+
+  // Transaction management endpoints
+  async getAllTransactions(token) {
+    const response = await fetch(`${API_BASE_URL}/transactions`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(token),
+    });
+    return this.handleResponse(response);
+  }
+
+  async updateShippingInfo(transactionId, shippingData, token) {
+    const response = await fetch(`${API_BASE_URL}/transactions/${transactionId}/shipping`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify(shippingData),
+    });
+    return this.handleResponse(response);
+  }
+
+  async updateTransactionStatus(transactionId, status, token) {
+    const response = await fetch(`${API_BASE_URL}/transactions/${transactionId}/payment-status`, {
+      method: 'PATCH',
+      headers: this.getAuthHeaders(token),
+      body: JSON.stringify({ paymentStatus: status }),
+    });
+    return this.handleResponse(response);
   }
 
   // Helper method to get image URL

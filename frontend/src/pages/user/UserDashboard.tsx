@@ -43,6 +43,13 @@ export function UserDashboard({ setCurrentPage, setSelectedAuction }: UserDashbo
     fetchUserProfile();
     fetchUserStats();
     fetchNotifications();
+
+    // Refresh notifications every 30 seconds
+    const notificationInterval = setInterval(() => {
+      fetchNotifications();
+    }, 30000);
+
+    return () => clearInterval(notificationInterval);
   }, []);
 
   // Fetch data when tabs change
@@ -115,19 +122,33 @@ export function UserDashboard({ setCurrentPage, setSelectedAuction }: UserDashbo
 
   const fetchWonAuctions = async () => {
     try {
-      if (!token) return;
+      if (!token) {
+        console.log('No token found for fetching won auctions');
+        return;
+      }
 
+      console.log('Fetching won auctions...');
       // Use the transaction API to get won auctions
       const transactions = await api.getBuyerTransactions(token);
+      console.log('Fetched won auctions/transactions:', transactions);
+      
+      if (!transactions || transactions.length === 0) {
+        console.log('No transactions found');
+        setWonAuctions([]);
+        return;
+      }
+
       setWonAuctions(transactions.map((transaction: any) => ({
         id: transaction.auctionId.toString(),
         transactionId: transaction.id,
         title: transaction.auctionTitle,
         finalBid: transaction.amount,
         wonDate: formatTimeAgo(new Date(transaction.createdAt)),
-        imageUrl: transaction.auctionImageUrl || '/img/placeholder-auction.jpg',
+        imageUrl: getImageUrl(transaction.auctionImageUrl) || '/img/placeholder-auction.jpg',
         status: transaction.paymentStatus.toLowerCase(), // 'Pending', 'Paid', 'Shipped', 'Completed'
-        paymentStatus: transaction.paymentStatus
+        paymentStatus: transaction.paymentStatus,
+        trackingNumber: transaction.trackingNumber,
+        shippingMethod: transaction.shippingMethod
       })));
     } catch (error) {
       console.error('Error fetching won auctions:', error);
@@ -224,6 +245,50 @@ export function UserDashboard({ setCurrentPage, setSelectedAuction }: UserDashbo
   const handleAuctionClick = (id: string) => {
     setSelectedAuction(id);
     setCurrentPage('auction-details');
+  };
+
+  const handlePayNow = async (transactionId: number) => {
+    try {
+      if (!token) {
+        alert('Please log in to make payment');
+        return;
+      }
+
+      console.log('Creating checkout session for transaction:', transactionId);
+      const response = await api.createCheckoutSession(transactionId, token);
+      
+      if (response.checkoutUrl) {
+        // Redirect to Stripe Checkout
+        window.location.href = response.checkoutUrl;
+      } else {
+        alert('Failed to create payment session');
+      }
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      alert('Failed to initiate payment. Please try again.');
+    }
+  };
+
+  const handleMarkAsReceived = async (transactionId: number) => {
+    if (!confirm('Confirm that you have received this item?')) {
+      return;
+    }
+
+    try {
+      if (!token) {
+        alert('Please log in to continue');
+        return;
+      }
+
+      await api.updateTransactionStatus(transactionId, 'Completed', token);
+      alert('Thank you for confirming delivery!');
+      
+      // Refresh won auctions
+      await fetchWonAuctions();
+    } catch (error) {
+      console.error('Error marking as received:', error);
+      alert('Failed to confirm delivery. Please try again.');
+    }
   };
 
   const getBidStatusColor = (status: string) => {
@@ -520,7 +585,17 @@ export function UserDashboard({ setCurrentPage, setSelectedAuction }: UserDashbo
 
           {/* Won Items Tab */}
           <TabsContent value="won" className="space-y-6">
-            {wonAuctions.length === 0 ? (
+            {userStats?.wonAuctions > 0 && wonAuctions.length === 0 ? (
+              <Card>
+                <CardContent className="text-center py-12">
+                  <Clock className="w-12 h-12 mx-auto text-blue-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Processing Your Wins</h3>
+                  <p className="text-gray-600 mb-2">You have {userStats.wonAuctions} won auction{userStats.wonAuctions > 1 ? 's' : ''} that {userStats.wonAuctions > 1 ? 'are' : 'is'} being processed.</p>
+                  <p className="text-sm text-gray-500 mb-4">Your won items will appear here once the admin finalizes the auction and creates your order.</p>
+                  <p className="text-xs text-gray-400">You'll receive a notification when your order is ready!</p>
+                </CardContent>
+              </Card>
+            ) : wonAuctions.length === 0 ? (
               <Card>
                 <CardContent className="text-center py-12">
                   <Trophy className="w-12 h-12 mx-auto text-gray-400 mb-4" />
@@ -565,13 +640,13 @@ export function UserDashboard({ setCurrentPage, setSelectedAuction }: UserDashbo
                               <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
                               <div className="flex-1">
                                 <p className="text-sm font-medium text-gray-900">Payment Required</p>
-                                <p className="text-xs text-gray-600 mt-1">Please contact the admin to complete payment and arrange delivery.</p>
+                                <p className="text-xs text-gray-600 mt-1">Complete your payment to proceed with delivery.</p>
                                 <Button 
                                   size="sm" 
                                   className="mt-2 bg-black text-white hover:bg-gray-800"
-                                  onClick={() => {/* Navigate to contact admin or open modal */}}
+                                  onClick={() => handlePayNow(item.transactionId)}
                                 >
-                                  Contact Admin
+                                  Pay Now
                                 </Button>
                               </div>
                             </div>
@@ -589,15 +664,23 @@ export function UserDashboard({ setCurrentPage, setSelectedAuction }: UserDashbo
                             <div className="flex items-start space-x-2">
                               <Truck className="w-5 h-5 text-blue-600 mt-0.5" />
                               <div className="flex-1">
-                                <p className="text-sm font-medium text-gray-900">Item Shipped</p>
-                                <p className="text-xs text-gray-600 mt-1">Your item is on the way! Check tracking information for updates.</p>
+                                <p className="text-sm font-medium text-gray-900">📦 Item Shipped!</p>
+                                <p className="text-xs text-gray-600 mt-1">Your item is on the way!</p>
+                                {item.trackingNumber && (
+                                  <div className="mt-2 bg-blue-50 border border-blue-200 rounded p-2">
+                                    <p className="text-xs font-medium text-blue-900">Tracking Number:</p>
+                                    <p className="text-xs font-mono text-blue-700">{item.trackingNumber}</p>
+                                    {item.shippingMethod && (
+                                      <p className="text-xs text-blue-600 mt-1">via {item.shippingMethod}</p>
+                                    )}
+                                  </div>
+                                )}
                                 <Button 
-                                  variant="outline" 
                                   size="sm" 
-                                  className="mt-2"
-                                  onClick={() => {/* Show tracking details */}}
+                                  className="mt-3 bg-blue-600 text-white hover:bg-blue-700"
+                                  onClick={() => handleMarkAsReceived(item.transactionId)}
                                 >
-                                  Track Package
+                                  Mark as Received
                                 </Button>
                               </div>
                             </div>

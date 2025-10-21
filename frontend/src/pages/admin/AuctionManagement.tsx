@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, MoreHorizontal, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, AlertTriangle, Plus, Loader2 } from 'lucide-react';
+import { Search, Filter, MoreHorizontal, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, AlertTriangle, Plus, Loader2, Lock } from 'lucide-react';
 import { Button } from '../../components/button';
 import { Input } from '../../components/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/card';
@@ -145,6 +145,31 @@ export function AuctionManagement({ setCurrentPage }: AuctionManagementProps) {
     } catch (err: any) {
       console.error('Error changing auction status:', err);
       toast.error(err.message || 'Failed to change auction status');
+    }
+  };
+
+  const handleCloseAuction = async (auctionId: number, auctionTitle: string) => {
+    if (!confirm(`Close auction "${auctionTitle}" and create transaction for winner?`)) return;
+
+    try {
+      const response = await fetch(`http://localhost:5021/api/auctions/${auctionId}/close`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(errorData || 'Failed to close auction');
+      }
+
+      toast.success('Auction closed and transaction created successfully!');
+      await fetchAuctions();
+    } catch (err: any) {
+      console.error('Error closing auction:', err);
+      toast.error(err.message || 'Failed to close auction');
     }
   };
 
@@ -418,6 +443,19 @@ export function AuctionManagement({ setCurrentPage }: AuctionManagementProps) {
                                 >
                                   <XCircle className="w-4 h-4 mr-2" />
                                   Set as Closed
+                                </DropdownMenuItem>
+                              )}
+                              
+                              <div className="my-1 h-px bg-gray-200" />
+                              
+                              {/* Close Auction & Create Transaction */}
+                              {(auction.status === 'Open' || auction.status === 'Closed') && auction.bidCount && auction.bidCount > 0 && (
+                                <DropdownMenuItem 
+                                  className="text-indigo-600 font-medium"
+                                  onClick={() => handleCloseAuction(auction.id, auction.title)}
+                                >
+                                  <Lock className="w-4 h-4 mr-2" />
+                                  Close & Create Transaction
                                 </DropdownMenuItem>
                               )}
                               

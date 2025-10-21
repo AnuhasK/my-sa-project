@@ -8,7 +8,9 @@ import {
   HelpCircle,
   Menu,
   X,
-  LogOut
+  LogOut,
+  Tag,
+  Package
 } from 'lucide-react';
 import { Button } from '../../components/button';
 import { useState } from 'react';
@@ -27,6 +29,8 @@ export function AdminSidebar({ currentPage, setCurrentPage, setIsLoggedIn, onLog
     { key: 'admin-dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { key: 'admin-users', label: 'Users', icon: Users },
     { key: 'admin-auctions', label: 'Auctions', icon: Gavel },
+    { key: 'admin-transactions', label: 'Transactions', icon: Package },
+    { key: 'admin-categories', label: 'Categories', icon: Tag },
     { key: 'admin-reports', label: 'Reports', icon: BarChart3 },
     { key: 'admin-notifications', label: 'Notifications', icon: Bell },
     { key: 'admin-settings', label: 'Settings', icon: Settings },

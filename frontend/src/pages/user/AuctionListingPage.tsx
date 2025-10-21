@@ -42,6 +42,15 @@ export function AuctionListingPage({ setCurrentPage, setSelectedAuction }: Aucti
   const [sortBy, setSortBy] = useState('ending-soon');
   const [currentFilters, setCurrentFilters] = useState<any>({});
 
+  // Check for search query on mount
+  useEffect(() => {
+    const searchQuery = sessionStorage.getItem('searchQuery');
+    if (searchQuery) {
+      setCurrentFilters({ search: searchQuery });
+      sessionStorage.removeItem('searchQuery'); // Clear after using
+    }
+  }, []);
+
   // Fetch auctions on mount and when filters change
   useEffect(() => {
     fetchAuctions(currentFilters);

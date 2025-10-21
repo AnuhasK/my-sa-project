@@ -48,6 +48,30 @@ namespace AuctionHouse.Api.Controllers
         }
 
         /// <summary>
+        /// Gets all transactions (admin only)
+        /// </summary>
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        public async Task<IActionResult> GetAllTransactions()
+        {
+            try
+            {
+                var result = await _transactionService.GetAllTransactionsAsync();
+                
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(new { message = result.Error });
+                }
+
+                return Ok(result.Data);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Gets a specific transaction by ID
         /// </summary>
         [Authorize]
@@ -183,6 +207,43 @@ namespace AuctionHouse.Api.Controllers
                 }
 
                 return Ok(new { message = "Payment status updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Updates shipping information for a transaction (Admin only)
+        /// </summary>
+        [Authorize(Roles = "Admin")]
+        [HttpPut("{id}/shipping")]
+        public async Task<IActionResult> UpdateShippingInfo(int id, [FromBody] UpdateShippingInfoDto dto)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+                {
+                    return Unauthorized(new { message = "Invalid authentication token" });
+                }
+
+                var result = await _transactionService.UpdateShippingInfoAsync(
+                    id,
+                    dto.ShippingAddress,
+                    dto.TrackingNumber,
+                    dto.ShippingMethod,
+                    dto.AdminNotes,
+                    userId
+                );
+
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(new { message = result.Error });
+                }
+
+                return Ok(new { message = "Shipping information updated successfully" });
             }
             catch (Exception ex)
             {

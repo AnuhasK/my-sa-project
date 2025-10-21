@@ -9,11 +9,15 @@ import { UserDashboard } from './pages/user/UserDashboard';
 import { UserProfile } from './pages/user/UserProfile';
 import { WatchlistPage } from './pages/user/WatchlistPage';
 import { WonAuctionsPage } from './pages/user/WonAuctionsPage';
+import { PaymentSuccess } from './pages/user/PaymentSuccess';
+import { PaymentCancelled } from './pages/user/PaymentCancelled';
 import { AdminSidebar } from './pages/admin/AdminSidebar';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { UserManagement } from './pages/admin/UserManagement';
 import { AuctionManagement } from './pages/admin/AuctionManagement';
 import { AdminCreateAuction } from './pages/admin/AdminCreateAuction';
+import { CategoryManagement } from './pages/admin/CategoryManagement';
+import { TransactionManagement } from './pages/admin/TransactionManagement';
 import { Reports } from './pages/admin/Reports';
 import { NotificationCenter } from './pages/admin/NotificationCenter';
 import { AdminSettings } from './pages/admin/AdminSettings';
@@ -26,6 +30,16 @@ function AppContent() {
   const { isAuthenticated, isAdmin, logout } = useAuth();
   const [currentPage, setCurrentPage] = useState('home');
   const [selectedAuction, setSelectedAuction] = useState('1');
+
+  // Handle URL-based routing (for external redirects like Stripe)
+  useEffect(() => {
+    const path = window.location.pathname;
+    if (path === '/payment-success') {
+      setCurrentPage('payment-success');
+    } else if (path === '/payment-cancelled') {
+      setCurrentPage('payment-cancelled');
+    }
+  }, []);
 
   // Redirect admin to admin dashboard on initial load
   useEffect(() => {
@@ -114,6 +128,10 @@ function AppContent() {
             setCurrentPage={setCurrentPage}
           />
         );
+      case 'payment-success':
+        return <PaymentSuccess setCurrentPage={setCurrentPage} />;
+      case 'payment-cancelled':
+        return <PaymentCancelled setCurrentPage={setCurrentPage} />;
       case 'watchlist':
         return isAuthenticated ? (
           <WatchlistPage 
@@ -174,6 +192,14 @@ function AppContent() {
         );
       case 'admin-create-auction':
         return isAdmin ? <AdminCreateAuction setCurrentPage={setCurrentPage} /> : (
+          <AuthForms mode="login" setCurrentPage={setCurrentPage} />
+        );
+      case 'admin-categories':
+        return isAdmin ? <CategoryManagement /> : (
+          <AuthForms mode="login" setCurrentPage={setCurrentPage} />
+        );
+      case 'admin-transactions':
+        return isAdmin ? <TransactionManagement /> : (
           <AuthForms mode="login" setCurrentPage={setCurrentPage} />
         );
       case 'admin-reports':

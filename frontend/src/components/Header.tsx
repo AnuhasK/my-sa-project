@@ -16,6 +16,7 @@ interface HeaderProps {
 export function Header({ currentPage, setCurrentPage, isLoggedIn, setIsLoggedIn }: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [watchlistCount, setWatchlistCount] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
   const { token } = useAuth();
 
   // Fetch watchlist count when user is logged in
@@ -43,10 +44,20 @@ export function Header({ currentPage, setCurrentPage, isLoggedIn, setIsLoggedIn 
     };
   }, [isLoggedIn, token]);
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      // Navigate to auctions page with search query
+      setCurrentPage('auctions');
+      // Store search query in sessionStorage so AuctionListingPage can use it
+      sessionStorage.setItem('searchQuery', searchQuery.trim());
+      setSearchQuery('');
+    }
+  };
+
   const navigationItems = [
     { label: 'Home', key: 'home' },
     { label: 'Auctions', key: 'auctions' },
-    { label: 'Categories', key: 'categories' },
     { label: 'About', key: 'about' },
   ];
 
@@ -86,14 +97,16 @@ export function Header({ currentPage, setCurrentPage, isLoggedIn, setIsLoggedIn 
 
           {/* Search Bar - Hidden on mobile */}
           <div className="hidden sm:flex items-center flex-1 max-w-md mx-8">
-            <div className="relative w-full">
+            <form onSubmit={handleSearch} className="relative w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
                 type="text"
                 placeholder="Search auctions..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 pr-4 py-2 w-full bg-gray-50 border-gray-200 focus:border-gray-400 focus:ring-0"
               />
-            </div>
+            </form>
           </div>
 
           {/* Notification Bell */}
@@ -115,11 +128,6 @@ export function Header({ currentPage, setCurrentPage, isLoggedIn, setIsLoggedIn 
                 >
                   <Heart className="w-4 h-4" />
                   <span>Watchlist</span>
-                  {watchlistCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                      {watchlistCount > 9 ? '9+' : watchlistCount}
-                    </span>
-                  )}
                 </Button>
                 <Button
                   variant="ghost"
@@ -186,14 +194,16 @@ export function Header({ currentPage, setCurrentPage, isLoggedIn, setIsLoggedIn 
             <div className="px-2 pt-2 pb-3 space-y-1">
               {/* Mobile Search */}
               <div className="px-3 py-2">
-                <div className="relative">
+                <form onSubmit={handleSearch} className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <Input
                     type="text"
                     placeholder="Search auctions..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-10 pr-4 py-2 w-full bg-gray-50 border-gray-200"
                   />
-                </div>
+                </form>
               </div>
               
               {navigationItems.map((item) => (
@@ -224,11 +234,6 @@ export function Header({ currentPage, setCurrentPage, isLoggedIn, setIsLoggedIn 
                       <Heart className="w-4 h-4" />
                       <span>Watchlist</span>
                     </span>
-                    {watchlistCount > 0 && (
-                      <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1">
-                        {watchlistCount > 9 ? '9+' : watchlistCount}
-                      </span>
-                    )}
                   </button>
                   <button
                     onClick={() => {

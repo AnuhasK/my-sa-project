@@ -71,10 +71,11 @@ export function Header({ currentPage, setCurrentPage, isLoggedIn, setIsLoggedIn 
               onClick={() => setCurrentPage('home')}
               className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
             >
-              <div className="w-8 h-8 bg-black rounded-sm flex items-center justify-center">
-                <span className="text-white font-bold">A</span>
-              </div>
-              <span className="text-xl font-medium text-black">AuctionHouse</span>
+              <img 
+                src="/img/logo.png" 
+                alt="Auction House Logo" 
+                className="h-12 w-auto"
+              />
             </button>
           </div>
 

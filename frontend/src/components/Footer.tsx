@@ -7,11 +7,12 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Company Info */}
           <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-white rounded-sm flex items-center justify-center">
-                <span className="text-black font-bold">A</span>
-              </div>
-              <span className="text-xl font-medium">AuctionHouse</span>
+            <div className="flex items-center">
+              <img 
+                src="/img/logo.png" 
+                alt="Auction House Logo" 
+                className="h-10 w-auto brightness-0 invert"
+              />
             </div>
             <p className="text-gray-400 text-sm leading-relaxed">
               Your trusted partner for premium auctions. Discover unique items and bid with confidence.

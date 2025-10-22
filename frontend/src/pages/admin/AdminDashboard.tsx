@@ -9,7 +9,6 @@ import {
   CheckCircle,
   ArrowUpRight,
   ArrowDownRight,
-  HelpCircle,
   Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/card';
@@ -403,14 +402,6 @@ export function AdminDashboard({ setCurrentPage }: AdminDashboardProps) {
             >
               <TrendingUp className="w-6 h-6" />
               <span>View Reports</span>
-            </Button>
-            <Button 
-              variant="outline" 
-              className="h-20 flex-col space-y-2"
-              onClick={() => setCurrentPage('admin-support')}
-            >
-              <HelpCircle className="w-6 h-6" />
-              <span>Support Tickets</span>
             </Button>
           </div>
         </CardContent>

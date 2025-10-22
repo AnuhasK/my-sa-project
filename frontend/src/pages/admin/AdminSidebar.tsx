@@ -5,7 +5,6 @@ import {
   BarChart3, 
   Bell, 
   Settings, 
-  HelpCircle,
   Menu,
   X,
   LogOut,
@@ -34,7 +33,6 @@ export function AdminSidebar({ currentPage, setCurrentPage, setIsLoggedIn, onLog
     { key: 'admin-reports', label: 'Reports', icon: BarChart3 },
     { key: 'admin-notifications', label: 'Notifications', icon: Bell },
     { key: 'admin-settings', label: 'Settings', icon: Settings },
-    { key: 'admin-support', label: 'Support', icon: HelpCircle },
   ];
 
   const handleNavigation = (page: string) => {

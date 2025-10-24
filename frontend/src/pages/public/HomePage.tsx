@@ -37,6 +37,7 @@ export function HomePage({ setCurrentPage, setSelectedAuction, setSelectedCatego
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -150,23 +151,36 @@ export function HomePage({ setCurrentPage, setSelectedAuction, setSelectedCatego
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed">
             Find exceptional pieces from trusted sellers worldwide. Bid with confidence on authenticated items.
           </p>
-          
           {/* Search Bar */}
-          <div className="max-w-2xl mx-auto mb-8">
+          <form
+            className="max-w-2xl mx-auto mb-8"
+            onSubmit={e => {
+              e.preventDefault();
+              if (searchQuery.trim()) {
+                setSelectedCategory(null);
+                setCurrentPage('auctions');
+                sessionStorage.setItem('searchQuery', searchQuery.trim());
+                setSearchQuery("");
+              }
+            }}
+          >
             <div className="relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <Input
                 type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Search for watches, art, furniture..."
                 className="pl-12 pr-4 py-4 text-lg border-2 border-gray-200 focus:border-gray-400 rounded-xl"
               />
-              <Button 
+              <Button
+                type="submit"
                 className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black text-white hover:bg-gray-800 px-6"
               >
                 Search
               </Button>
             </div>
-          </div>
+          </form>
 
           <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4">
             <Button 

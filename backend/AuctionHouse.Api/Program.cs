@@ -9,6 +9,9 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Load secrets from appsettings.Secrets.json (not committed to Git)
+builder.Configuration.AddJsonFile("appsettings.Secrets.json", optional: true, reloadOnChange: true);
+
 // Validate critical configuration at startup
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrWhiteSpace(connectionString))

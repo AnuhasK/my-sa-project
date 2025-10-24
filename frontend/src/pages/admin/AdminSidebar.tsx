@@ -5,7 +5,6 @@ import {
   BarChart3, 
   Bell, 
   Settings, 
-  HelpCircle,
   Menu,
   X,
   LogOut,
@@ -14,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../../components/button';
 import { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface AdminSidebarProps {
   currentPage: string;
@@ -24,6 +24,7 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ currentPage, setCurrentPage, setIsLoggedIn, onLogout }: AdminSidebarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user } = useAuth();
 
   const navigationItems = [
     { key: 'admin-dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -34,7 +35,6 @@ export function AdminSidebar({ currentPage, setCurrentPage, setIsLoggedIn, onLog
     { key: 'admin-reports', label: 'Reports', icon: BarChart3 },
     { key: 'admin-notifications', label: 'Notifications', icon: Bell },
     { key: 'admin-settings', label: 'Settings', icon: Settings },
-    { key: 'admin-support', label: 'Support', icon: HelpCircle },
   ];
 
   const handleNavigation = (page: string) => {
@@ -114,8 +114,8 @@ export function AdminSidebar({ currentPage, setCurrentPage, setIsLoggedIn, onLog
                 <span className="text-sm font-medium text-gray-700">A</span>
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium text-gray-900 truncate">Admin User</div>
-                <div className="text-xs text-gray-500">admin@auctionhouse.com</div>
+                <div className="text-sm font-medium text-gray-900 truncate">{user?.userName || 'Admin User'}</div>
+                <div className="text-xs text-gray-500">{user?.email || 'admin@auctionhouse.com'}</div>
               </div>
             </div>
             <Button

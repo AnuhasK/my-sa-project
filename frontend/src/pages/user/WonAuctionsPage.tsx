@@ -6,10 +6,26 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/card'
 import { Badge } from '../../components/badge';
 import { Button } from '../../components/button';
 
+// Helper function to build full image URL
+const getImageUrl = (imageUrl: string | undefined) => {
+  if (!imageUrl) return undefined;
+  
+  // If it's already a full URL, return as-is
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    return imageUrl;
+  }
+  
+  // Otherwise, prepend the base URL
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5021/api';
+  const baseUrl = apiBase.replace(/\/api$/, '');
+  return `${baseUrl}${imageUrl}`;
+};
+
 interface WonAuction {
   id: number;
   auctionId: number;
   auctionTitle: string;
+  auctionImageUrl?: string;
   otherPartyUsername: string;
   amount: number;
   paymentStatus: string;
@@ -39,6 +55,7 @@ export function WonAuctionsPage({ setCurrentPage, setSelectedAuction }: WonAucti
       try {
         setLoading(true);
         const data = await api.getBuyerTransactions(token);
+        console.log('Won auctions data:', data);
         setTransactions(data);
         setFilteredTransactions(data);
       } catch (err: any) {
@@ -259,7 +276,19 @@ export function WonAuctionsPage({ setCurrentPage, setSelectedAuction }: WonAucti
                     {/* Left Section - Auction Info */}
                     <div className="flex-1">
                       <div className="flex items-start gap-4">
-                        <div className={`p-3 rounded-lg ${getStatusColor(transaction.paymentStatus)}`}>
+                        {/* Auction Image */}
+                        {transaction.auctionImageUrl && (
+                          <img
+                            src={getImageUrl(transaction.auctionImageUrl)}
+                            alt={transaction.auctionTitle}
+                            className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200&h=200&fit=crop';
+                            }}
+                          />
+                        )}
+                        <div className={`p-3 rounded-lg ${getStatusColor(transaction.paymentStatus)} flex-shrink-0`}>
                           {getStatusIcon(transaction.paymentStatus)}
                         </div>
                         <div className="flex-1">

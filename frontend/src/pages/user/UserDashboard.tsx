@@ -11,12 +11,18 @@ import { TransactionsList } from '../../components/TransactionsList';
 import { useAuth } from '../../contexts/AuthContext';
 
 // Helper function to build full image URL
-const getImageUrl = (relativeUrl: string | undefined) => {
-  if (!relativeUrl) return undefined;
+const getImageUrl = (imageUrl: string | undefined) => {
+  if (!imageUrl) return undefined;
+  
+  // If it's already a full URL, return as-is
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    return imageUrl;
+  }
+  
+  // Otherwise, prepend the base URL
   const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5021/api';
-  // Remove /api from the end since the image URL already includes it
   const baseUrl = apiBase.replace(/\/api$/, '');
-  return `${baseUrl}${relativeUrl}`;
+  return `${baseUrl}${imageUrl}`;
 };
 
 interface UserDashboardProps {
@@ -204,14 +210,17 @@ export function UserDashboard({ setCurrentPage, setSelectedAuction }: UserDashbo
 
   // Helper function to format time ago
   const formatTimeAgo = (date: Date) => {
+    // Get current time in UTC
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     
     if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
     if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
     return 'Just now';
   };
 

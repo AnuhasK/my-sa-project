@@ -507,3 +507,4 @@ C:\Users\Anuhas\Documents\Auction Website Project\backend\AuctionHouse.Api\obj\D
 C:\Users\Anuhas\Documents\Auction Website Project\backend\AuctionHouse.Api\obj\Debug\net9.0\ref\AuctionHouse.Api.dll
 C:\Users\Anuhas\Documents\Auction Website Project\backend\AuctionHouse.Api\bin\Debug\net9.0\AuctionHouse.Api.staticwebassets.runtime.json
 C:\Users\Anuhas\Documents\Auction Website Project\backend\AuctionHouse.Api\bin\Debug\net9.0\Stripe.net.dll
+C:\Users\Anuhas\Documents\Auction Website Project\backend\AuctionHouse.Api\bin\Debug\net9.0\appsettings.Secrets.json
